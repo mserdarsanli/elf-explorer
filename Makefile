@@ -19,3 +19,7 @@ out/prog2.o: src/prog2.cpp
 	@mkdir -p out
 	g++ -c -o $@ $<
 
+
+out/symbol_renamer: src/symbol_renamer.cpp
+	@mkdir -p out
+	g++ -o $@ $<
