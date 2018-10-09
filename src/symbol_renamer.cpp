@@ -99,6 +99,24 @@ int main( int argc, char* argv[] )
     uint16_t section_names_header_index = LoadU16( contents.data() + 0x3E );
     std::cout << "Section names header index = " << section_names_header_index << "\n";
 
+    std::cout << "Parsing section headers:\n";
+    for ( int i = 0; i < section_header_num_entries; ++i )
+    {
+        unsigned char *sh = contents.data() + section_header_offset + section_header_entry_size * i;
+
+        std::cout << "\n";
+        std::cout << "SH[" << i << "] name idx = " << LoadU32( sh + 0x00 ) << "\n";
+        std::cout << "SH[" << i << "] type     = " << LoadU32( sh + 0x04 ) << "\n";
+        std::cout << "SH[" << i << "] attrs    = " << LoadU64( sh + 0x08 ) << "\n";
+        std::cout << "SH[" << i << "] address  = " << LoadU64( sh + 0x10 ) << "\n";
+        std::cout << "SH[" << i << "] offset   = " << LoadU64( sh + 0x18 ) << "\n";
+        std::cout << "SH[" << i << "] asso idx = " << LoadU32( sh + 0x28 ) << "\n";
+        std::cout << "SH[" << i << "] info     = " << LoadU32( sh + 0x2c ) << "\n";
+        std::cout << "SH[" << i << "] info     = " << LoadU64( sh + 0x30 ) << "\n";
+        std::cout << "SH[" << i << "] entsize  = " << LoadU64( sh + 0x38 ) << "\n";
+    }
+
+
     std::cout << "File looks fine.\n";
 
     return 0;
