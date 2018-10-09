@@ -90,8 +90,8 @@ int main( int argc, char* argv[] )
     ASSERT( LoadU16( contents.data() + 0x36 ) == 0 ); // Size of program header
     ASSERT( LoadU16( contents.data() + 0x38 ) == 0 ); // program header num entries
 
-    uint16_t section_header_size = LoadU16( contents.data() + 0x3A );
-    std::cout << "Section header size = " << section_header_size << "\n";
+    uint16_t section_header_entry_size = LoadU16( contents.data() + 0x3A );
+    std::cout << "Section header entry size = " << section_header_entry_size << "\n";
 
     uint16_t section_header_num_entries = LoadU16( contents.data() + 0x3C );
     std::cout << "Section header num entries = " << section_header_num_entries << "\n";
