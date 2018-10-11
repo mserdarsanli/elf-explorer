@@ -112,7 +112,7 @@ int main( int argc, char* argv[] )
         std::cout << "SH[" << i << "] offset   = " << LoadU64( sh + 0x18 ) << "\n";
         std::cout << "SH[" << i << "] asso idx = " << LoadU32( sh + 0x28 ) << "\n";
         std::cout << "SH[" << i << "] info     = " << LoadU32( sh + 0x2c ) << "\n";
-        std::cout << "SH[" << i << "] info     = " << LoadU64( sh + 0x30 ) << "\n";
+        std::cout << "SH[" << i << "] addralign= " << LoadU64( sh + 0x30 ) << "\n";
         std::cout << "SH[" << i << "] entsize  = " << LoadU64( sh + 0x38 ) << "\n";
     }
 
