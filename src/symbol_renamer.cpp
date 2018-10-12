@@ -11,6 +11,30 @@
         throw std::runtime_error( "Assertion failed: " + std::string( #expr ) ); \
     }
 
+
+enum class SectionType : uint32_t {
+    ProgramData = 1,
+    SymbolTable = 2,
+    StringTable = 3,
+    RelocationEntries = 4,
+    Constructors = 14,
+    Group = 17,
+};
+
+std::string_view to_string( SectionType t )
+{
+    switch ( t )
+    {
+    case SectionType::ProgramData: return "ProgramData";
+    case SectionType::SymbolTable: return "SymbolTable";
+    case SectionType::StringTable: return "StringTable";
+    case SectionType::RelocationEntries: return "RelocationEntries";
+    case SectionType::Constructors: return "Constructors";
+    case SectionType::Group: return "Group";
+    }
+    return "UNKNOWN";
+}
+
 uint16_t LoadU16( const unsigned char *data )
 {
     uint16_t res = 0;
@@ -137,12 +161,11 @@ int main( int argc, char* argv[] )
 
         std::cout << "SH[" << i << "] name     = " << shstrtab.StringAtOffset( LoadU32( sh + 0x00 ) ) << "\n";
         {
-            uint32_t s_type = LoadU32( sh + 0x04 );
-            if ( s_type == 3 )
-                std::cout << "SH[" << i << "] type     = SHT_STRTAB\n";
-            else
-                std::cout << "SH[" << i << "] type     = " << s_type << "\n";
+            auto s_type = static_cast< SectionType >( LoadU32( sh + 0x04 ) );
+
+            std::cout << "SH[" << i << "] type     = " << to_string( s_type ) << " (" << (int)s_type << ")\n";
         }
+
         std::cout << "SH[" << i << "] attrs    = " << LoadU64( sh + 0x08 ) << "\n";
         std::cout << "SH[" << i << "] address  = " << LoadU64( sh + 0x10 ) << "\n";
         std::cout << "SH[" << i << "] offset   = " << LoadU64( sh + 0x18 ) << "\n";
