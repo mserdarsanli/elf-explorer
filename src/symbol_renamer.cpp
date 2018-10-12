@@ -2,6 +2,7 @@
 #include <ios>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #define ASSERT( expr ) \
@@ -41,6 +42,32 @@ uint64_t LoadU64( const unsigned char *data )
     res <<= 8; res += data[ 0 ];
     return res;
 }
+
+struct StringTable
+{
+    StringTable( const unsigned char *data, int header_offset )
+        : m_data( data )
+    {
+        const unsigned char *header = m_data + header_offset;
+        uint32_t s_type = LoadU32( header + 0x04 );
+        ASSERT( s_type == 3 ); // SHT_STRTAB
+        ASSERT( LoadU64( header + 0x30 ) == 1 ); // Addralign
+
+        std::cout << "Created correct str table\n";
+        uint64_t table_offset = LoadU64( header + 0x18 );
+
+        std::cout << "Table offset is: " << table_offset << "\n";
+        m_table = m_data + table_offset;
+    }
+
+    std::string_view StringAtOffset( uint64_t string_offset ) const
+    {
+        return reinterpret_cast< const char* >( m_table + string_offset );
+    }
+
+    const unsigned char *m_data;
+    const unsigned char *m_table;
+};
 
 int main( int argc, char* argv[] )
 {
@@ -99,14 +126,23 @@ int main( int argc, char* argv[] )
     uint16_t section_names_header_index = LoadU16( contents.data() + 0x3E );
     std::cout << "Section names header index = " << section_names_header_index << "\n";
 
+    StringTable shstrtab( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
+
     std::cout << "Parsing section headers:\n";
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
         unsigned char *sh = contents.data() + section_header_offset + section_header_entry_size * i;
 
         std::cout << "\n";
-        std::cout << "SH[" << i << "] name idx = " << LoadU32( sh + 0x00 ) << "\n";
-        std::cout << "SH[" << i << "] type     = " << LoadU32( sh + 0x04 ) << "\n";
+
+        std::cout << "SH[" << i << "] name     = " << shstrtab.StringAtOffset( LoadU32( sh + 0x00 ) ) << "\n";
+        {
+            uint32_t s_type = LoadU32( sh + 0x04 );
+            if ( s_type == 3 )
+                std::cout << "SH[" << i << "] type     = SHT_STRTAB\n";
+            else
+                std::cout << "SH[" << i << "] type     = " << s_type << "\n";
+        }
         std::cout << "SH[" << i << "] attrs    = " << LoadU64( sh + 0x08 ) << "\n";
         std::cout << "SH[" << i << "] address  = " << LoadU64( sh + 0x10 ) << "\n";
         std::cout << "SH[" << i << "] offset   = " << LoadU64( sh + 0x18 ) << "\n";
