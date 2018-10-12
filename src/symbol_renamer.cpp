@@ -69,7 +69,9 @@ uint64_t LoadU64( const unsigned char *data )
 
 struct StringTable
 {
-    StringTable( const unsigned char *data, int header_offset )
+    StringTable() = default;
+
+    StringTable( const unsigned char *data, uint64_t header_offset )
         : m_data( data )
     {
         const unsigned char *header = m_data + header_offset;
@@ -91,6 +93,56 @@ struct StringTable
 
     const unsigned char *m_data;
     const unsigned char *m_table;
+};
+
+StringTable shstrtab; // TODO this should be part of ctx/file object
+
+struct SectionHeader
+{
+    SectionHeader( const unsigned char *data, uint64_t header_offset )
+    {
+        const unsigned char *sh = data + header_offset;
+
+        m_name = shstrtab.StringAtOffset( LoadU32( sh + 0x00 ) );
+        m_type = static_cast< SectionType >( LoadU32( sh + 0x04 ) );
+        m_attrs      = LoadU64( sh + 0x08 );
+        m_address    = LoadU64( sh + 0x10 );
+        m_offset     = LoadU64( sh + 0x18 );
+        m_asso_idx   = LoadU32( sh + 0x28 );
+        m_info       = LoadU32( sh + 0x2c );
+        m_addr_align = LoadU64( sh + 0x30 );
+        m_ent_size   = LoadU64( sh + 0x38 );
+    }
+
+    void Dump() const
+    {
+        std::cout << "  - name      = " << m_name << "\n";
+        std::cout << "  - type      = " << to_string( m_type ) << " (" << (int)m_type << ")\n";
+        if ( m_attrs )
+            std::cout << "  - attrs     = " << m_attrs << "\n";
+        if ( m_address )
+            std::cout << "  - address   = " << m_address << "\n";
+        if ( m_offset )
+            std::cout << "  - offset    = " << m_offset << "\n";
+        if ( m_asso_idx )
+            std::cout << "  - asso idx  = " << m_asso_idx << "\n";
+        if ( m_info )
+            std::cout << "  - info      = " << m_info << "\n";
+        if ( m_addr_align )
+            std::cout << "  - addralign = " << m_addr_align << "\n";
+        if ( m_ent_size )
+            std::cout << "  - entsize   = " << m_ent_size << "\n";
+    }
+
+    std::string m_name;
+    SectionType m_type;
+    uint64_t m_attrs;
+    uint64_t m_address;
+    uint64_t m_offset;
+    uint32_t m_asso_idx;
+    uint32_t m_info;
+    uint64_t m_addr_align;
+    uint64_t m_ent_size;
 };
 
 int main( int argc, char* argv[] )
@@ -150,31 +202,15 @@ int main( int argc, char* argv[] )
     uint16_t section_names_header_index = LoadU16( contents.data() + 0x3E );
     std::cout << "Section names header index = " << section_names_header_index << "\n";
 
-    StringTable shstrtab( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
+    shstrtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
 
     std::cout << "Parsing section headers:\n";
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
-        unsigned char *sh = contents.data() + section_header_offset + section_header_entry_size * i;
-
-        std::cout << "\n";
-
-        std::cout << "SH[" << i << "] name     = " << shstrtab.StringAtOffset( LoadU32( sh + 0x00 ) ) << "\n";
-        {
-            auto s_type = static_cast< SectionType >( LoadU32( sh + 0x04 ) );
-
-            std::cout << "SH[" << i << "] type     = " << to_string( s_type ) << " (" << (int)s_type << ")\n";
-        }
-
-        std::cout << "SH[" << i << "] attrs    = " << LoadU64( sh + 0x08 ) << "\n";
-        std::cout << "SH[" << i << "] address  = " << LoadU64( sh + 0x10 ) << "\n";
-        std::cout << "SH[" << i << "] offset   = " << LoadU64( sh + 0x18 ) << "\n";
-        std::cout << "SH[" << i << "] asso idx = " << LoadU32( sh + 0x28 ) << "\n";
-        std::cout << "SH[" << i << "] info     = " << LoadU32( sh + 0x2c ) << "\n";
-        std::cout << "SH[" << i << "] addralign= " << LoadU64( sh + 0x30 ) << "\n";
-        std::cout << "SH[" << i << "] entsize  = " << LoadU64( sh + 0x38 ) << "\n";
+        std::cout << "\n- SectionHeader[ " << i << " ]\n";
+        SectionHeader sh( contents.data(), section_header_offset + section_header_entry_size * i );
+        sh.Dump();
     }
-
 
     std::cout << "File looks fine.\n";
 
