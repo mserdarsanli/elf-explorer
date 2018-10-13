@@ -214,6 +214,58 @@ struct SectionHeader
     uint64_t m_ent_size;
 };
 
+struct ELF_File
+{
+    ELF_File( std::vector< unsigned char > &&contents_ )
+        : contents( std::move( contents_ ) )
+    {
+        ASSERT( contents[ 0 ] == 0x7F );
+        ASSERT( contents[ 1 ] == 'E' );
+        ASSERT( contents[ 2 ] == 'L' );
+        ASSERT( contents[ 3 ] == 'F' );
+
+        ASSERT( contents[ 4 ] == 2 ); // 64-bit
+        ASSERT( contents[ 5 ] == 1 ); // Little-Endian
+        ASSERT( contents[ 6 ] == 1 ); // ELF version 1
+        ASSERT( contents[ 7 ] == 0 ); // Not sure why this is 0
+        ASSERT( contents[ 8 ] == 0 ); // Unused
+        // PAD 9-15
+
+        ASSERT( LoadU16( contents.data() + 0x10 ) == 1 ); // ET_REL (relocatable file)
+        ASSERT( LoadU16( contents.data() + 0x12 ) == 0x3E ); // x86-64
+
+        ASSERT( LoadU32( contents.data() + 0x14 ) == 1 ); // ELF v1
+
+        ASSERT( LoadU64( contents.data() + 0x18 ) == 0 ); // Entry point offset
+        ASSERT( LoadU64( contents.data() + 0x20 ) == 0 ); // Program header offset
+
+        section_header_offset = LoadU64( contents.data() + 0x28 );
+        std::cout << "Section header offset = " << section_header_offset << "\n";
+
+        ASSERT( LoadU32( contents.data() + 0x30 ) == 0 ); // Flags
+
+        ASSERT( LoadU16( contents.data() + 0x34 ) == 64 ); // ELF Header size
+        ASSERT( LoadU16( contents.data() + 0x36 ) == 0 ); // Size of program header
+        ASSERT( LoadU16( contents.data() + 0x38 ) == 0 ); // program header num entries
+
+        section_header_entry_size = LoadU16( contents.data() + 0x3A );
+        std::cout << "Section header entry size = " << section_header_entry_size << "\n";
+
+        section_header_num_entries = LoadU16( contents.data() + 0x3C );
+        std::cout << "Section header num entries = " << section_header_num_entries << "\n";
+
+        section_names_header_index = LoadU16( contents.data() + 0x3E );
+        std::cout << "Section names header index = " << section_names_header_index << "\n";
+    }
+
+    std::vector< unsigned char > contents;
+
+    uint64_t section_header_offset;
+    uint16_t section_header_entry_size;
+    uint16_t section_header_num_entries;
+    uint16_t section_names_header_index;
+};
+
 int main( int argc, char* argv[] )
 {
     if ( argc != 2 )
@@ -232,56 +284,19 @@ int main( int argc, char* argv[] )
         contents.resize( file_size );
         input_file.read( (char*)contents.data(), file_size );
     }
+    ELF_File file( std::move( contents ) );
 
-    ASSERT( contents[ 0 ] == 0x7F );
-    ASSERT( contents[ 1 ] == 'E' );
-    ASSERT( contents[ 2 ] == 'L' );
-    ASSERT( contents[ 3 ] == 'F' );
-
-    ASSERT( contents[ 4 ] == 2 ); // 64-bit
-    ASSERT( contents[ 5 ] == 1 ); // Little-Endian
-    ASSERT( contents[ 6 ] == 1 ); // ELF version 1
-    ASSERT( contents[ 7 ] == 0 ); // Not sure why this is 0
-    ASSERT( contents[ 8 ] == 0 ); // Unused
-    // PAD 9-15
-
-    ASSERT( LoadU16( contents.data() + 0x10 ) == 1 ); // ET_REL (relocatable file)
-    ASSERT( LoadU16( contents.data() + 0x12 ) == 0x3E ); // x86-64
-
-    ASSERT( LoadU32( contents.data() + 0x14 ) == 1 ); // ELF v1
-
-    ASSERT( LoadU64( contents.data() + 0x18 ) == 0 ); // Entry point offset
-    ASSERT( LoadU64( contents.data() + 0x20 ) == 0 ); // Program header offset
-
-    uint64_t section_header_offset = LoadU64( contents.data() + 0x28 );
-    std::cout << "Section header offset = " << section_header_offset << "\n";
-
-    ASSERT( LoadU32( contents.data() + 0x30 ) == 0 ); // Flags
-
-    ASSERT( LoadU16( contents.data() + 0x34 ) == 64 ); // ELF Header size
-    ASSERT( LoadU16( contents.data() + 0x36 ) == 0 ); // Size of program header
-    ASSERT( LoadU16( contents.data() + 0x38 ) == 0 ); // program header num entries
-
-    uint16_t section_header_entry_size = LoadU16( contents.data() + 0x3A );
-    std::cout << "Section header entry size = " << section_header_entry_size << "\n";
-
-    uint16_t section_header_num_entries = LoadU16( contents.data() + 0x3C );
-    std::cout << "Section header num entries = " << section_header_num_entries << "\n";
-
-    uint16_t section_names_header_index = LoadU16( contents.data() + 0x3E );
-    std::cout << "Section names header index = " << section_names_header_index << "\n";
-
-    shstrtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
+    shstrtab = StringTable( file.contents.data(), file.section_header_offset + file.section_header_entry_size * file.section_names_header_index );
 
     std::optional< SectionHeader > symtab_header;
     std::optional< StringTable > strtab;
     std::vector< uint64_t > section_offsets;
 
     std::cout << "Parsing section headers:\n";
-    for ( int i = 0; i < section_header_num_entries; ++i )
+    for ( int i = 0; i < file.section_header_num_entries; ++i )
     {
         std::cout << "\n- SectionHeader[ " << i << " ]\n";
-        SectionHeader sh( contents.data(), section_header_offset + section_header_entry_size * i );
+        SectionHeader sh( file.contents.data(), file.section_header_offset + file.section_header_entry_size * i );
         sh.Dump();
 
         section_offsets.push_back( sh.m_offset );
@@ -293,7 +308,7 @@ int main( int argc, char* argv[] )
 
         if ( sh.m_name == ".strtab" )
         {
-            strtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * i ); // TODO this should work with actual offset not header offset!!
+            strtab = StringTable( file.contents.data(), file.section_header_offset + file.section_header_entry_size * i ); // TODO this should work with actual offset not header offset!!
         }
     }
     std::sort( section_offsets.begin(), section_offsets.end() );
@@ -318,7 +333,7 @@ int main( int argc, char* argv[] )
 
     for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
     {
-        Symbol s( contents.data(), *strtab, symtab_offset + 24 * i );
+        Symbol s( file.contents.data(), *strtab, symtab_offset + 24 * i );
         s.Dump();
     }
 
