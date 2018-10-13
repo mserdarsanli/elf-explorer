@@ -1,6 +1,7 @@
 #include <fstream>
 #include <ios>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -10,30 +11,6 @@
     { \
         throw std::runtime_error( "Assertion failed: " + std::string( #expr ) ); \
     }
-
-
-enum class SectionType : uint32_t {
-    ProgramData = 1,
-    SymbolTable = 2,
-    StringTable = 3,
-    RelocationEntries = 4,
-    Constructors = 14,
-    Group = 17,
-};
-
-std::string_view to_string( SectionType t )
-{
-    switch ( t )
-    {
-    case SectionType::ProgramData: return "ProgramData";
-    case SectionType::SymbolTable: return "SymbolTable";
-    case SectionType::StringTable: return "StringTable";
-    case SectionType::RelocationEntries: return "RelocationEntries";
-    case SectionType::Constructors: return "Constructors";
-    case SectionType::Group: return "Group";
-    }
-    return "UNKNOWN";
-}
 
 uint16_t LoadU16( const unsigned char *data )
 {
@@ -65,6 +42,92 @@ uint64_t LoadU64( const unsigned char *data )
     res <<= 8; res += data[ 1 ];
     res <<= 8; res += data[ 0 ];
     return res;
+}
+
+
+enum class SectionType : uint32_t
+{
+    ProgramData = 1,
+    SymbolTable = 2,
+    StringTable = 3,
+    RelocationEntries = 4,
+    Constructors = 14,
+    Group = 17,
+};
+
+enum class SectionFlags : uint64_t
+{
+    Writable   = 1 << 0,
+    Alloc      = 1 << 1,
+    Executable = 1 << 2,
+
+    Merge      = 1 << 4,
+    Strings    = 1 << 5,
+    InfoLink   = 1 << 6,
+
+    Group      = 1 << 9,
+};
+
+struct SectionFlagsBitfield
+{
+    SectionFlagsBitfield() = default;
+    SectionFlagsBitfield( uint64_t val )
+        : m_val( val )
+    {
+    }
+
+    uint64_t m_val = 0;
+};
+
+std::string_view to_string( SectionType t )
+{
+    switch ( t )
+    {
+    case SectionType::ProgramData: return "ProgramData";
+    case SectionType::SymbolTable: return "SymbolTable";
+    case SectionType::StringTable: return "StringTable";
+    case SectionType::RelocationEntries: return "RelocationEntries";
+    case SectionType::Constructors: return "Constructors";
+    case SectionType::Group: return "Group";
+    }
+    return "UNKNOWN";
+}
+
+std::string to_string( SectionFlagsBitfield f )
+{
+    uint64_t val = f.m_val;
+
+    std::stringstream out;
+
+    #define SR_PROC_BIT( name ) \
+        if ( val & static_cast< uint64_t >( SectionFlags::name ) ) \
+        { \
+            out << #name; \
+            val -= static_cast< uint64_t >( SectionFlags::name ); \
+            if ( val ) \
+            { \
+                out << " | "; \
+            } \
+        }
+
+    SR_PROC_BIT( Writable   );
+    SR_PROC_BIT( Alloc      );
+    SR_PROC_BIT( Executable );
+
+    SR_PROC_BIT( Merge      );
+    SR_PROC_BIT( Strings    );
+    SR_PROC_BIT( InfoLink   );
+
+    SR_PROC_BIT( Group      );
+
+    #undef SR_PROC_BIT
+
+    if ( val )
+    {
+        out << "Unknown( " << val << " )";
+    }
+
+    return out.str();
 }
 
 struct StringTable
@@ -105,7 +168,7 @@ struct SectionHeader
 
         m_name = shstrtab.StringAtOffset( LoadU32( sh + 0x00 ) );
         m_type = static_cast< SectionType >( LoadU32( sh + 0x04 ) );
-        m_attrs      = LoadU64( sh + 0x08 );
+        m_attrs      = SectionFlagsBitfield( LoadU64( sh + 0x08 ) );
         m_address    = LoadU64( sh + 0x10 );
         m_offset     = LoadU64( sh + 0x18 );
         m_asso_idx   = LoadU32( sh + 0x28 );
@@ -118,8 +181,8 @@ struct SectionHeader
     {
         std::cout << "  - name      = " << m_name << "\n";
         std::cout << "  - type      = " << to_string( m_type ) << " (" << (int)m_type << ")\n";
-        if ( m_attrs )
-            std::cout << "  - attrs     = " << m_attrs << "\n";
+        if ( m_attrs.m_val )
+            std::cout << "  - attrs     = " << to_string( m_attrs ) << "\n";
         if ( m_address )
             std::cout << "  - address   = " << m_address << "\n";
         if ( m_offset )
@@ -136,7 +199,7 @@ struct SectionHeader
 
     std::string m_name;
     SectionType m_type;
-    uint64_t m_attrs;
+    SectionFlagsBitfield m_attrs;
     uint64_t m_address;
     uint64_t m_offset;
     uint32_t m_asso_idx;
