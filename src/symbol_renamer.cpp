@@ -125,6 +125,39 @@ struct StringTable
     const unsigned char *m_table;
 };
 
+struct Symbol
+{
+    Symbol( const unsigned char *data, const StringTable &strtab, uint64_t offset )
+    {
+        const unsigned char *sym = data + offset;
+
+        m_name = strtab.StringAtOffset( LoadU32( sym ) );
+        m_info = LoadU8( sym + 4 );
+        m_visibility = LoadU8( sym + 5 );
+        m_section_idx = LoadU16( sym + 6 );
+        m_value = LoadU64( sym + 8 );
+        m_size = LoadU64( sym + 16 );
+    }
+
+    void Dump() const
+    {
+        std::cout << "Symbol\n";
+        std::cout << "  - name = " << m_name << "\n";
+        std::cout << "  - info = " << (int)m_info << "\n";
+        std::cout << "  - visibility = " << (int)m_visibility << "\n";
+        std::cout << "  - section idx = " << m_section_idx << "\n";
+        std::cout << "  - value = " << m_value << "\n";
+        std::cout << "  - size = " << m_size << "\n";
+    }
+
+    std::string m_name;
+    uint8_t m_info;
+    uint8_t m_visibility;
+    uint16_t m_section_idx;
+    uint64_t m_value;
+    uint64_t m_size;
+};
+
 StringTable shstrtab; // TODO this should be part of ctx/file object
 
 struct SectionHeader
@@ -235,6 +268,7 @@ int main( int argc, char* argv[] )
     shstrtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
 
     std::optional< SectionHeader > symtab_header;
+    std::optional< StringTable > strtab;
     std::vector< uint64_t > section_offsets;
 
     std::cout << "Parsing section headers:\n";
@@ -250,16 +284,22 @@ int main( int argc, char* argv[] )
         {
             symtab_header = sh;
         }
+
+        if ( sh.m_name == ".strtab" )
+        {
+            strtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * i ); // TODO this should work with actual offset not header offset!!
+        }
     }
     std::sort( section_offsets.begin(), section_offsets.end() );
 
+    ASSERT( strtab );
     ASSERT( symtab_header );
     ASSERT( symtab_header->m_ent_size == 24 );
+    uint64_t symtab_offset = symtab_header->m_offset;
     uint64_t symtab_elem_cnt = 0;
 
     // Find symtab size
     {
-        uint64_t symtab_offset = symtab_header->m_offset;
         auto it = std::upper_bound( section_offsets.begin(), section_offsets.end(), symtab_offset );
         ASSERT( it != section_offsets.end() );
         uint64_t next_offset = *it;
@@ -269,6 +309,12 @@ int main( int argc, char* argv[] )
     }
     std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
     ASSERT( symtab_elem_cnt != 0 );
+
+    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
+    {
+        Symbol s( contents.data(), *strtab, symtab_offset + 24 * i );
+        s.Dump();
+    }
 
     std::cout << "File looks fine.\n";
 

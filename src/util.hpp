@@ -4,6 +4,12 @@
         throw std::runtime_error( "Assertion failed: " + std::string( #expr ) ); \
     }
 
+uint8_t LoadU8( const unsigned char *data )
+{
+    uint8_t res = data[ 0 ];
+    return res;
+}
+
 uint16_t LoadU16( const unsigned char *data )
 {
     uint16_t res = 0;
