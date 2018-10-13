@@ -143,7 +143,13 @@ struct Symbol
     {
         std::cout << "Symbol\n";
         std::cout << "  - name = " << m_name << "\n";
-        std::cout << "  - info = " << (int)m_info << "\n";
+        {
+            std::cout << "  - info\n";
+            uint8_t bind = m_info >> 4;
+            std::cout << "    - bind = " << ( bind == 0 ? "Local" : bind == 1 ? "Global" : bind == 2 ? "Weak" : "Unknown" ) << "( " << (int)bind << " )\n";
+            uint8_t type = m_info & 15;
+            std::cout << "    - type = " << (int)type << "\n";
+        }
         std::cout << "  - visibility = " << (int)m_visibility << "\n";
         std::cout << "  - section idx = " << m_section_idx << "\n";
         std::cout << "  - value = " << m_value << "\n";
