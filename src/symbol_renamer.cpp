@@ -14,6 +14,7 @@ enum class SectionType : uint32_t
     SymbolTable = 2,
     StringTable = 3,
     RelocationEntries = 4,
+    Nobits = 8,
     Constructors = 14,
     Group = 17,
 };
@@ -52,8 +53,9 @@ std::string_view to_string( SectionType t )
     case SectionType::RelocationEntries: return "RelocationEntries";
     case SectionType::Constructors: return "Constructors";
     case SectionType::Group: return "Group";
+    case SectionType::Nobits: return "Nobits";
     }
-    return "UNKNOWN";
+    return "\033[31mUNKNOWN\033[0m";
 }
 
 std::string to_string( SectionFlagsBitfield f )
@@ -87,7 +89,7 @@ std::string to_string( SectionFlagsBitfield f )
 
     if ( val )
     {
-        out << "Unknown( " << val << " )";
+        out << "\033[31mUnknown( " << val << " )\033[0m";
     }
 
     return out.str();
