@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <fstream>
 #include <ios>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -232,13 +234,41 @@ int main( int argc, char* argv[] )
 
     shstrtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
 
+    std::optional< SectionHeader > symtab_header;
+    std::vector< uint64_t > section_offsets;
+
     std::cout << "Parsing section headers:\n";
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
         std::cout << "\n- SectionHeader[ " << i << " ]\n";
         SectionHeader sh( contents.data(), section_header_offset + section_header_entry_size * i );
         sh.Dump();
+
+        section_offsets.push_back( sh.m_offset );
+
+        if ( sh.m_name == ".symtab" )
+        {
+            symtab_header = sh;
+        }
     }
+    std::sort( section_offsets.begin(), section_offsets.end() );
+
+    ASSERT( symtab_header );
+    ASSERT( symtab_header->m_ent_size == 24 );
+    uint64_t symtab_elem_cnt = 0;
+
+    // Find symtab size
+    {
+        uint64_t symtab_offset = symtab_header->m_offset;
+        auto it = std::upper_bound( section_offsets.begin(), section_offsets.end(), symtab_offset );
+        ASSERT( it != section_offsets.end() );
+        uint64_t next_offset = *it;
+
+        ASSERT( ( next_offset - symtab_offset ) % 24 == 0 );
+        symtab_elem_cnt = ( next_offset - symtab_offset ) / 24;
+    }
+    std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
+    ASSERT( symtab_elem_cnt != 0 );
 
     std::cout << "File looks fine.\n";
 
