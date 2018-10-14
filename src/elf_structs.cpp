@@ -64,7 +64,7 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
         std::cout << "\n- SectionHeader[ " << i << " ]\n";
-        SectionHeader sh( *this, contents.data(), section_header_offset + section_header_entry_size * i );
+        SectionHeader sh( *this, section_header_offset + section_header_entry_size * i );
         sh.Dump();
 
         if ( sh.m_name == ".symtab" )
@@ -103,14 +103,14 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     }
 }
 
-uint8_t ELF_File::U8At( uint64_t offset )
+uint8_t ELF_File::U8At( uint64_t offset ) const
 {
     ASSERT( offset + 1 <= contents.size() );
     uint8_t res = contents[ offset ];
     return res;
 }
 
-uint16_t ELF_File::U16At( uint64_t offset )
+uint16_t ELF_File::U16At( uint64_t offset ) const
 {
     ASSERT( offset + 2 <= contents.size() );
     uint16_t res = 0;
@@ -119,7 +119,7 @@ uint16_t ELF_File::U16At( uint64_t offset )
     return res;
 }
 
-uint32_t ELF_File::U32At( uint64_t offset )
+uint32_t ELF_File::U32At( uint64_t offset ) const
 {
     ASSERT( offset + 4 <= contents.size() );
     uint32_t res = 0;
@@ -130,7 +130,7 @@ uint32_t ELF_File::U32At( uint64_t offset )
     return res;
 }
 
-uint64_t ELF_File::U64At( uint64_t offset )
+uint64_t ELF_File::U64At( uint64_t offset ) const
 {
     ASSERT( offset + 8 <= contents.size() );
     uint64_t res = 0;
@@ -145,19 +145,17 @@ uint64_t ELF_File::U64At( uint64_t offset )
     return res;
 }
 
-SectionHeader::SectionHeader( const ELF_File &ctx, const unsigned char *data, uint64_t header_offset )
+SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
 {
-    const unsigned char *sh = data + header_offset;
-
-    m_name = ctx.shstrtab->StringAtOffset( LoadU32( sh + 0x00 ) );
-    m_type = static_cast< SectionType >( LoadU32( sh + 0x04 ) );
-    m_attrs      = SectionFlagsBitfield( LoadU64( sh + 0x08 ) );
-    m_address    = LoadU64( sh + 0x10 );
-    m_offset     = LoadU64( sh + 0x18 );
-    m_asso_idx   = LoadU32( sh + 0x28 );
-    m_info       = LoadU32( sh + 0x2c );
-    m_addr_align = LoadU64( sh + 0x30 );
-    m_ent_size   = LoadU64( sh + 0x38 );
+    m_name = ctx.shstrtab->StringAtOffset( ctx.U32At( offset + 0x00 ) );
+    m_type = static_cast< SectionType >( ctx.U32At( offset + 0x04 ) );
+    m_attrs      = SectionFlagsBitfield( ctx.U64At( offset + 0x08 ) );
+    m_address    = ctx.U64At( offset + 0x10 );
+    m_offset     = ctx.U64At( offset + 0x18 );
+    m_asso_idx   = ctx.U32At( offset + 0x28 );
+    m_info       = ctx.U32At( offset + 0x2c );
+    m_addr_align = ctx.U64At( offset + 0x30 );
+    m_ent_size   = ctx.U64At( offset + 0x38 );
 }
 
 void SectionHeader::Dump() const

@@ -160,7 +160,7 @@ struct ELF_File;
 
 struct SectionHeader
 {
-    SectionHeader( const ELF_File &ctx, const unsigned char *data, uint64_t header_offset );
+    SectionHeader( const ELF_File &ctx, uint64_t header_offset );
     void Dump() const;
 
     std::string m_name;
@@ -179,10 +179,10 @@ struct ELF_File
 {
     ELF_File( std::vector< unsigned char > &&contents_ );
 
-    uint8_t U8At( uint64_t offset );
-    uint16_t U16At( uint64_t offset );
-    uint32_t U32At( uint64_t offset );
-    uint64_t U64At( uint64_t offset );
+    uint8_t U8At( uint64_t offset ) const;
+    uint16_t U16At( uint64_t offset ) const;
+    uint32_t U32At( uint64_t offset ) const;
+    uint64_t U64At( uint64_t offset ) const;
 
     std::vector< unsigned char > contents;
 
