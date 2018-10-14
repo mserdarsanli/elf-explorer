@@ -44,11 +44,23 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     section_names_header_index = U16At( 0x3E );
     std::cout << "Section names header index = " << section_names_header_index << "\n";
 
+
+    std::vector< uint64_t > section_offsets;
+    {
+        for ( int i = 0; i < section_header_num_entries; ++i )
+        {
+            uint64_t header_offset = section_header_offset + section_header_entry_size * i;
+            section_offsets.push_back( U64At( header_offset + 0x18 ) );
+        }
+        std::sort( section_offsets.begin(), section_offsets.end() );
+    }
+
+
     // TODO make this a member var
-    shstrtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
+    uint64_t shstrtab_offset = section_header_offset + section_header_entry_size * section_names_header_index;
+    shstrtab = StringTable( contents.data(), shstrtab_offset );
 
     std::optional< SectionHeader > symtab_header;
-    std::vector< uint64_t > section_offsets;
 
     std::cout << "Parsing section headers:\n";
     for ( int i = 0; i < section_header_num_entries; ++i )
@@ -56,8 +68,6 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
         std::cout << "\n- SectionHeader[ " << i << " ]\n";
         SectionHeader sh( contents.data(), section_header_offset + section_header_entry_size * i );
         sh.Dump();
-
-        section_offsets.push_back( sh.m_offset );
 
         if ( sh.m_name == ".symtab" )
         {
@@ -69,7 +79,6 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
             strtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * i ); // TODO this should work with actual offset not header offset!!
         }
     }
-    std::sort( section_offsets.begin(), section_offsets.end() );
 
     ASSERT( strtab );
     ASSERT( symtab_header );
