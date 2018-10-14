@@ -65,27 +65,57 @@ std::string_view to_string( SectionType t )
     return "\033[31mUNKNOWN\033[0m";
 }
 
-enum class Binding : uint8_t
+enum class SymbolBinding : uint8_t
 {
     Local = 0,
     Global = 1,
     Weak = 2,
 };
 
-inline std::string to_string( Binding b )
+inline std::string to_string( SymbolBinding b )
 {
     switch ( b )
     {
-    case Binding::Local:
+    case SymbolBinding::Local:
         return "Local";
-    case Binding::Global:
+    case SymbolBinding::Global:
         return "Global";
-    case Binding::Weak:
+    case SymbolBinding::Weak:
         return "Weak";
     }
 
     std::stringstream out;
     out << "\033[31mUnknown( " << static_cast< int >( b ) << " )\033[0m";
+    return out.str();
+}
+
+enum class SymbolType : uint8_t
+{
+    NotSpecified = 0,
+    Object = 1,
+    Function = 2,
+    Section = 3,
+    File = 4,
+};
+
+inline std::string to_string( SymbolType t )
+{
+    switch ( t )
+    {
+    case SymbolType::NotSpecified:
+        return "NotSpecified";
+    case SymbolType::Object:
+        return "Object";
+    case SymbolType::Function:
+        return "Function";
+    case SymbolType::Section:
+        return "Section";
+    case SymbolType::File:
+        return "File";
+    }
+
+    std::stringstream out;
+    out << "\033[31mUnknown( " << static_cast< int >( t ) << " )\033[0m";
     return out.str();
 }
 
@@ -147,8 +177,8 @@ struct Symbol
     void Dump() const;
 
     std::string m_name;
-    Binding m_binding;
-    uint8_t m_type;
+    SymbolBinding m_binding;
+    SymbolType m_type;
     uint8_t m_visibility;
     uint16_t m_section_idx;
     uint64_t m_value;
