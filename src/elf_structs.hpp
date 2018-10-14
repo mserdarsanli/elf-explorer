@@ -65,6 +65,30 @@ std::string_view to_string( SectionType t )
     return "\033[31mUNKNOWN\033[0m";
 }
 
+enum class Binding : uint8_t
+{
+    Local = 0,
+    Global = 1,
+    Weak = 2,
+};
+
+inline std::string to_string( Binding b )
+{
+    switch ( b )
+    {
+    case Binding::Local:
+        return "Local";
+    case Binding::Global:
+        return "Global";
+    case Binding::Weak:
+        return "Weak";
+    }
+
+    std::stringstream out;
+    out << "\033[31mUnknown( " << static_cast< int >( b ) << " )\033[0m";
+    return out.str();
+}
+
 inline // TODO
 std::string to_string( SectionFlagsBitfield f )
 {
@@ -123,7 +147,8 @@ struct Symbol
     void Dump() const;
 
     std::string m_name;
-    uint8_t m_info;
+    Binding m_binding;
+    uint8_t m_type;
     uint8_t m_visibility;
     uint16_t m_section_idx;
     uint64_t m_value;
