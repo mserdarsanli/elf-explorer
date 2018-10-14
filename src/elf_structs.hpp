@@ -241,6 +241,7 @@ struct ELF_File
     uint64_t GetSectionSize( uint64_t section_offset ) const;
 
     std::vector< unsigned char > contents;
+    mutable std::vector< bool > m_read; // Mark all the read bytes
 
     uint64_t section_header_offset;
     uint16_t section_header_entry_size;

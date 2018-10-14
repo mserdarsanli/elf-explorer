@@ -2,6 +2,7 @@
 
 ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     : contents( std::move( contents_ ) )
+    , m_read( contents.size(), false )
 {
     ASSERT( U8At( 0 ) == 0x7F );
     ASSERT( U8At( 1 ) == 'E' );
@@ -96,6 +97,7 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
 uint8_t ELF_File::U8At( uint64_t offset ) const
 {
     ASSERT( offset + 1 <= contents.size() );
+    m_read[ offset ] = true;
     uint8_t res = contents[ offset ];
     return res;
 }
@@ -104,8 +106,8 @@ uint16_t ELF_File::U16At( uint64_t offset ) const
 {
     ASSERT( offset + 2 <= contents.size() );
     uint16_t res = 0;
-    res <<= 8; res += contents[ offset + 1 ];
-    res <<= 8; res += contents[ offset + 0 ];
+    res <<= 8; res += contents[ offset + 1 ]; m_read[ offset + 1 ] = true;
+    res <<= 8; res += contents[ offset + 0 ]; m_read[ offset + 0 ] = true;
     return res;
 }
 
@@ -113,10 +115,10 @@ uint32_t ELF_File::U32At( uint64_t offset ) const
 {
     ASSERT( offset + 4 <= contents.size() );
     uint32_t res = 0;
-    res <<= 8; res += contents[ offset + 3 ];
-    res <<= 8; res += contents[ offset + 2 ];
-    res <<= 8; res += contents[ offset + 1 ];
-    res <<= 8; res += contents[ offset + 0 ];
+    res <<= 8; res += contents[ offset + 3 ]; m_read[ offset + 3 ] = true;
+    res <<= 8; res += contents[ offset + 2 ]; m_read[ offset + 2 ] = true;
+    res <<= 8; res += contents[ offset + 1 ]; m_read[ offset + 1 ] = true;
+    res <<= 8; res += contents[ offset + 0 ]; m_read[ offset + 0 ] = true;
     return res;
 }
 
@@ -124,14 +126,14 @@ uint64_t ELF_File::U64At( uint64_t offset ) const
 {
     ASSERT( offset + 8 <= contents.size() );
     uint64_t res = 0;
-    res <<= 8; res += contents[ offset + 7 ];
-    res <<= 8; res += contents[ offset + 6 ];
-    res <<= 8; res += contents[ offset + 5 ];
-    res <<= 8; res += contents[ offset + 4 ];
-    res <<= 8; res += contents[ offset + 3 ];
-    res <<= 8; res += contents[ offset + 2 ];
-    res <<= 8; res += contents[ offset + 1 ];
-    res <<= 8; res += contents[ offset + 0 ];
+    res <<= 8; res += contents[ offset + 7 ]; m_read[ offset + 7 ] = true;
+    res <<= 8; res += contents[ offset + 6 ]; m_read[ offset + 6 ] = true;
+    res <<= 8; res += contents[ offset + 5 ]; m_read[ offset + 5 ] = true;
+    res <<= 8; res += contents[ offset + 4 ]; m_read[ offset + 4 ] = true;
+    res <<= 8; res += contents[ offset + 3 ]; m_read[ offset + 3 ] = true;
+    res <<= 8; res += contents[ offset + 2 ]; m_read[ offset + 2 ] = true;
+    res <<= 8; res += contents[ offset + 1 ]; m_read[ offset + 1 ] = true;
+    res <<= 8; res += contents[ offset + 0 ]; m_read[ offset + 0 ] = true;
     return res;
 }
 
@@ -207,7 +209,12 @@ uint64_t ELF_File::GetSectionSize( uint64_t section_offset ) const
 
 StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset )
 {
-    m_str.assign( (const char*)ctx.contents.data() + section_offset, ctx.GetSectionSize( section_offset ) );
+    uint64_t end_offset = ctx.GetSectionSize( section_offset );
+    for ( uint64_t i = section_offset; i < end_offset; ++i )
+    {
+        ctx.m_read[ i ] = true;
+    }
+    m_str.assign( (const char*)ctx.contents.data() + section_offset, end_offset );
 }
 
 std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const

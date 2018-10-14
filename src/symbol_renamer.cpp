@@ -33,5 +33,30 @@ int main( int argc, char* argv[] )
     ELF_File file( std::move( contents ) );
     std::cout << "File looks fine.\n";
 
+
+    bool in_read_sec = true;
+    // Report unread parts of the file
+    for ( size_t i = 0; i < file.m_read.size(); ++i )
+    {
+        bool read = file.m_read[ i ];
+
+        if ( in_read_sec )
+        {
+            if ( ! read )
+            {
+                std::cout << "Unread [ " << i << ", ";
+                in_read_sec = false;
+            }
+        }
+        else
+        {
+            if ( read )
+            {
+                std::cout << i << " )\n";
+                in_read_sec = true;
+            }
+        }
+    }
+
     return 0;
 }
