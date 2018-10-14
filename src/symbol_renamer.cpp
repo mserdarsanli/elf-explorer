@@ -256,6 +256,57 @@ struct ELF_File
 
         section_names_header_index = U16At( 0x3E );
         std::cout << "Section names header index = " << section_names_header_index << "\n";
+
+        // TODO make this a member var
+        shstrtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * section_names_header_index );
+
+        std::optional< SectionHeader > symtab_header;
+        std::vector< uint64_t > section_offsets;
+
+        std::cout << "Parsing section headers:\n";
+        for ( int i = 0; i < section_header_num_entries; ++i )
+        {
+            std::cout << "\n- SectionHeader[ " << i << " ]\n";
+            SectionHeader sh( contents.data(), section_header_offset + section_header_entry_size * i );
+            sh.Dump();
+
+            section_offsets.push_back( sh.m_offset );
+
+            if ( sh.m_name == ".symtab" )
+            {
+                symtab_header = sh;
+            }
+
+            if ( sh.m_name == ".strtab" )
+            {
+                strtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * i ); // TODO this should work with actual offset not header offset!!
+            }
+        }
+        std::sort( section_offsets.begin(), section_offsets.end() );
+
+        ASSERT( strtab );
+        ASSERT( symtab_header );
+        ASSERT( symtab_header->m_ent_size == 24 );
+        uint64_t symtab_offset = symtab_header->m_offset;
+        uint64_t symtab_elem_cnt = 0;
+
+        // Find symtab size
+        {
+            auto it = std::upper_bound( section_offsets.begin(), section_offsets.end(), symtab_offset );
+            ASSERT( it != section_offsets.end() );
+            uint64_t next_offset = *it;
+
+            ASSERT( ( next_offset - symtab_offset ) % 24 == 0 );
+            symtab_elem_cnt = ( next_offset - symtab_offset ) / 24;
+        }
+        std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
+        ASSERT( symtab_elem_cnt != 0 );
+
+        for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
+        {
+            Symbol s( contents.data(), *strtab, symtab_offset + 24 * i );
+            s.Dump();
+        }
     }
 
     uint8_t U8At( uint64_t offset )
@@ -306,6 +357,8 @@ struct ELF_File
     uint16_t section_header_entry_size;
     uint16_t section_header_num_entries;
     uint16_t section_names_header_index;
+
+    std::optional< StringTable > strtab;
 };
 
 int main( int argc, char* argv[] )
@@ -326,59 +379,8 @@ int main( int argc, char* argv[] )
         contents.resize( file_size );
         input_file.read( (char*)contents.data(), file_size );
     }
+
     ELF_File file( std::move( contents ) );
-
-    shstrtab = StringTable( file.contents.data(), file.section_header_offset + file.section_header_entry_size * file.section_names_header_index );
-
-    std::optional< SectionHeader > symtab_header;
-    std::optional< StringTable > strtab;
-    std::vector< uint64_t > section_offsets;
-
-    std::cout << "Parsing section headers:\n";
-    for ( int i = 0; i < file.section_header_num_entries; ++i )
-    {
-        std::cout << "\n- SectionHeader[ " << i << " ]\n";
-        SectionHeader sh( file.contents.data(), file.section_header_offset + file.section_header_entry_size * i );
-        sh.Dump();
-
-        section_offsets.push_back( sh.m_offset );
-
-        if ( sh.m_name == ".symtab" )
-        {
-            symtab_header = sh;
-        }
-
-        if ( sh.m_name == ".strtab" )
-        {
-            strtab = StringTable( file.contents.data(), file.section_header_offset + file.section_header_entry_size * i ); // TODO this should work with actual offset not header offset!!
-        }
-    }
-    std::sort( section_offsets.begin(), section_offsets.end() );
-
-    ASSERT( strtab );
-    ASSERT( symtab_header );
-    ASSERT( symtab_header->m_ent_size == 24 );
-    uint64_t symtab_offset = symtab_header->m_offset;
-    uint64_t symtab_elem_cnt = 0;
-
-    // Find symtab size
-    {
-        auto it = std::upper_bound( section_offsets.begin(), section_offsets.end(), symtab_offset );
-        ASSERT( it != section_offsets.end() );
-        uint64_t next_offset = *it;
-
-        ASSERT( ( next_offset - symtab_offset ) % 24 == 0 );
-        symtab_elem_cnt = ( next_offset - symtab_offset ) / 24;
-    }
-    std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
-    ASSERT( symtab_elem_cnt != 0 );
-
-    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
-    {
-        Symbol s( file.contents.data(), *strtab, symtab_offset + 24 * i );
-        s.Dump();
-    }
-
     std::cout << "File looks fine.\n";
 
     return 0;
