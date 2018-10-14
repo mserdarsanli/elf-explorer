@@ -14,7 +14,11 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     ASSERT( U8At( 6 ) == 1 ); // ELF version 1
     ASSERT( U8At( 7 ) == 0 ); // Not sure why this is 0
     ASSERT( U8At( 8 ) == 0 ); // Unused
-    // PAD 9-15
+
+    for ( int i = 9; i <= 15; ++i )
+    {
+        ASSERT( U8At( i ) == 0 ); // Force read these bytes ...
+    }
 
     ASSERT( U16At( 0x10 ) == 1 ); // ET_REL (relocatable file)
     ASSERT( U16At( 0x12 ) == 0x3E ); // x86-64
