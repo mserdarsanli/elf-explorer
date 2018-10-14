@@ -174,7 +174,7 @@ Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
     uint8_t info = ctx.U8At( offset + 4 );
     m_binding = static_cast< SymbolBinding >( info >> 4 );
     m_type = static_cast< SymbolType >( info & 15 );
-    m_visibility = ctx.U8At( offset + 5 );
+    m_visibility = static_cast< SymbolVisibility >( ctx.U8At( offset + 5 ) );
     m_section_idx = ctx.U16At( offset + 6 );
     m_value = ctx.U64At( offset + 8 );
     m_size = ctx.U64At( offset + 16 );
@@ -186,7 +186,7 @@ void Symbol::Dump() const
     std::cout << "  - name = " << m_name << "\n";
     std::cout << "  - bind = " << to_string( m_binding ) << "\n";
     std::cout << "  - type = " << to_string( m_type ) << "\n";
-    std::cout << "  - visibility = " << (int)m_visibility << "\n";
+    std::cout << "  - visibility = " << to_string( m_visibility ) << "\n";
     std::cout << "  - section idx = " << m_section_idx << "\n";
     std::cout << "  - value = " << m_value << "\n";
     std::cout << "  - size = " << m_size << "\n";

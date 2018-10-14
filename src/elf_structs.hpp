@@ -119,6 +119,33 @@ inline std::string to_string( SymbolType t )
     return out.str();
 }
 
+enum class SymbolVisibility : uint8_t
+{
+    Default = 0,
+    Internal = 1,
+    Hidden = 2,
+    Protected = 3,
+};
+
+inline std::string to_string( SymbolVisibility v )
+{
+    switch ( v )
+    {
+    case SymbolVisibility::Default:
+        return "Default";
+    case SymbolVisibility::Internal:
+        return "Internal";
+    case SymbolVisibility::Hidden:
+        return "Hidden";
+    case SymbolVisibility::Protected:
+        return "Protected";
+    }
+
+    std::stringstream out;
+    out << "\033[31mUnknown( " << static_cast< int >( v ) << " )\033[0m";
+    return out.str();
+}
+
 inline // TODO
 std::string to_string( SectionFlagsBitfield f )
 {
@@ -179,7 +206,7 @@ struct Symbol
     std::string m_name;
     SymbolBinding m_binding;
     SymbolType m_type;
-    uint8_t m_visibility;
+    SymbolVisibility m_visibility;
     uint16_t m_section_idx;
     uint64_t m_value;
     uint64_t m_size;
