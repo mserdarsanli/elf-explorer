@@ -21,6 +21,6 @@ out/prog2.o: src/prog2.cpp
 	$(CC) -c -o $@ $<
 
 
-out/symbol_renamer: src/symbol_renamer.cpp $(wildcard src/*.hpp)
+out/symbol_renamer: $(wildcard src/*.cpp) $(wildcard src/*.hpp)
 	@mkdir -p out
-	$(CC) -o $@ $<
+	$(CC) -o $@ src/symbol_renamer.cpp src/elf_structs.cpp

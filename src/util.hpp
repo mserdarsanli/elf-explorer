@@ -1,15 +1,19 @@
+#pragma once
+
 #define ASSERT( expr ) \
     if ( !( expr ) ) \
     { \
         throw std::runtime_error( "Assertion failed: " + std::string( #expr ) ); \
     }
 
+inline
 uint8_t LoadU8( const unsigned char *data )
 {
     uint8_t res = data[ 0 ];
     return res;
 }
 
+inline
 uint16_t LoadU16( const unsigned char *data )
 {
     uint16_t res = 0;
@@ -18,6 +22,7 @@ uint16_t LoadU16( const unsigned char *data )
     return res;
 }
 
+inline
 uint32_t LoadU32( const unsigned char *data )
 {
     uint32_t res = 0;
@@ -28,6 +33,7 @@ uint32_t LoadU32( const unsigned char *data )
     return res;
 }
 
+inline
 uint64_t LoadU64( const unsigned char *data )
 {
     uint64_t res = 0;
