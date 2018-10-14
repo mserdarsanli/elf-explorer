@@ -111,15 +111,8 @@ struct StringTable
 {
     StringTable() = default;
 
-    StringTable( const unsigned char *data, uint64_t section_offset, uint64_t section_size )
-        : m_str( (const char*)data + section_offset, section_size )
-    {
-    }
-
-    std::string_view StringAtOffset( uint64_t string_offset ) const
-    {
-        return m_str.data() + string_offset;
-    }
+    StringTable( const ELF_File &ctx, uint64_t section_offset );
+    std::string_view StringAtOffset( uint64_t string_offset ) const;
 
     std::string m_str;
 };
@@ -163,6 +156,8 @@ struct ELF_File
     uint32_t U32At( uint64_t offset ) const;
     uint64_t U64At( uint64_t offset ) const;
 
+    uint64_t GetSectionSize( uint64_t section_offset ) const;
+
     std::vector< unsigned char > contents;
 
     uint64_t section_header_offset;
@@ -172,4 +167,6 @@ struct ELF_File
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;
+
+    std::vector< uint64_t > section_offsets;
 };

@@ -42,21 +42,20 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     std::cout << "Section names header index = " << section_names_header_index << "\n";
 
 
-    std::vector< uint64_t > section_offsets;
+    // Extract section offsets first
+    for ( int i = 0; i < section_header_num_entries; ++i )
     {
-        for ( int i = 0; i < section_header_num_entries; ++i )
-        {
-            uint64_t header_offset = section_header_offset + section_header_entry_size * i;
-            section_offsets.push_back( U64At( header_offset + 0x18 ) );
-        }
-        std::sort( section_offsets.begin(), section_offsets.end() );
+        uint64_t header_offset = section_header_offset + section_header_entry_size * i;
+        section_offsets.push_back( U64At( header_offset + 0x18 ) );
     }
+    std::sort( section_offsets.begin(), section_offsets.end() );
 
 
     // TODO make this a member var
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
     uint64_t shstrtab_offset = U64At( shstrtab_header_offset + 0x18 );
-    shstrtab = StringTable( contents.data(), shstrtab_offset, contents.size() - shstrtab_offset );
+    std::cout << "Initializing shstrtab\n";
+    shstrtab = StringTable( *this, shstrtab_offset );
 
     std::optional< SectionHeader > symtab_header;
 
@@ -74,7 +73,8 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
 
         if ( sh.m_name == ".strtab" )
         {
-            strtab = StringTable( contents.data(), sh.m_offset, contents.size() - sh.m_offset );
+            std::cout << "Initializing strtab\n";
+            strtab = StringTable( *this, sh.m_offset );
         }
     }
 
@@ -82,17 +82,7 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     ASSERT( symtab_header );
     ASSERT( symtab_header->m_ent_size == 24 );
     uint64_t symtab_offset = symtab_header->m_offset;
-    uint64_t symtab_elem_cnt = 0;
-
-    // Find symtab size
-    {
-        auto it = std::upper_bound( section_offsets.begin(), section_offsets.end(), symtab_offset );
-        ASSERT( it != section_offsets.end() );
-        uint64_t next_offset = *it;
-
-        ASSERT( ( next_offset - symtab_offset ) % 24 == 0 );
-        symtab_elem_cnt = ( next_offset - symtab_offset ) / 24;
-    }
+    uint64_t symtab_elem_cnt = GetSectionSize( symtab_offset ) / 24;
     std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
     ASSERT( symtab_elem_cnt != 0 );
 
@@ -203,4 +193,27 @@ void Symbol::Dump() const
     std::cout << "  - section idx = " << m_section_idx << "\n";
     std::cout << "  - value = " << m_value << "\n";
     std::cout << "  - size = " << m_size << "\n";
+}
+
+// Since sections sizes are not stored, this computes it by finding offset fidderence
+// with the next section. Not sure if this is correct.
+uint64_t ELF_File::GetSectionSize( uint64_t section_offset ) const
+{
+    auto it = std::lower_bound( section_offsets.begin(), section_offsets.end(), section_offset );
+    ASSERT( it != section_offsets.end() );
+    ASSERT( *it == section_offset );
+
+    ++it;
+    uint64_t end_offset = ( it != section_offsets.end() ? *it : contents.size() );
+    return end_offset - section_offset;
+}
+
+StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset )
+{
+    m_str.assign( (const char*)ctx.contents.data() + section_offset, ctx.GetSectionSize( section_offset ) );
+}
+
+std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const
+{
+    return m_str.data() + string_offset;
 }
