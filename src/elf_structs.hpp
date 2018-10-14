@@ -7,7 +7,12 @@
 #include <sstream>
 #include <vector>
 
-#include "util.hpp"
+#define ASSERT( expr ) \
+    if ( !( expr ) ) \
+    { \
+        throw std::runtime_error( "Assertion failed: " + std::string( #expr ) ); \
+    }
+
 
 enum class SectionType : uint32_t
 {

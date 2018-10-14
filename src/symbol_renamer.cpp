@@ -8,8 +8,6 @@
 #include <string_view>
 #include <vector>
 
-#include "util.hpp"
-
 #include "elf_structs.hpp"
 
 
