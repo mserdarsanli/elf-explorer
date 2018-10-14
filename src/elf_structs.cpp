@@ -57,8 +57,9 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
 
 
     // TODO make this a member var
-    uint64_t shstrtab_offset = section_header_offset + section_header_entry_size * section_names_header_index;
-    shstrtab = StringTable( contents.data(), shstrtab_offset );
+    uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
+    uint64_t shstrtab_offset = U64At( shstrtab_header_offset + 0x18 );
+    shstrtab = StringTable( contents.data(), shstrtab_offset, contents.size() - shstrtab_offset );
 
     std::optional< SectionHeader > symtab_header;
 
@@ -76,7 +77,7 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
 
         if ( sh.m_name == ".strtab" )
         {
-            strtab = StringTable( contents.data(), section_header_offset + section_header_entry_size * i ); // TODO this should work with actual offset not header offset!!
+            strtab = StringTable( contents.data(), sh.m_offset, contents.size() - sh.m_offset );
         }
     }
 

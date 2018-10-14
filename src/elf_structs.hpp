@@ -104,28 +104,17 @@ struct StringTable
 {
     StringTable() = default;
 
-    StringTable( const unsigned char *data, uint64_t header_offset )
-        : m_data( data )
+    StringTable( const unsigned char *data, uint64_t section_offset, uint64_t section_size )
+        : m_str( (const char*)data + section_offset, section_size )
     {
-        const unsigned char *header = m_data + header_offset;
-        uint32_t s_type = LoadU32( header + 0x04 );
-        ASSERT( s_type == 3 ); // SHT_STRTAB
-        ASSERT( LoadU64( header + 0x30 ) == 1 ); // Addralign
-
-        std::cout << "Created correct str table\n";
-        uint64_t table_offset = LoadU64( header + 0x18 );
-
-        std::cout << "Table offset is: " << table_offset << "\n";
-        m_table = m_data + table_offset;
     }
 
     std::string_view StringAtOffset( uint64_t string_offset ) const
     {
-        return reinterpret_cast< const char* >( m_table + string_offset );
+        return m_str.data() + string_offset;
     }
 
-    const unsigned char *m_data;
-    const unsigned char *m_table;
+    std::string m_str;
 };
 
 extern StringTable shstrtab; // TODO this should be part of ctx/file object
