@@ -219,43 +219,85 @@ struct ELF_File
     ELF_File( std::vector< unsigned char > &&contents_ )
         : contents( std::move( contents_ ) )
     {
-        ASSERT( contents[ 0 ] == 0x7F );
-        ASSERT( contents[ 1 ] == 'E' );
-        ASSERT( contents[ 2 ] == 'L' );
-        ASSERT( contents[ 3 ] == 'F' );
+        ASSERT( U8At( 0 ) == 0x7F );
+        ASSERT( U8At( 1 ) == 'E' );
+        ASSERT( U8At( 2 ) == 'L' );
+        ASSERT( U8At( 3 ) == 'F' );
 
-        ASSERT( contents[ 4 ] == 2 ); // 64-bit
-        ASSERT( contents[ 5 ] == 1 ); // Little-Endian
-        ASSERT( contents[ 6 ] == 1 ); // ELF version 1
-        ASSERT( contents[ 7 ] == 0 ); // Not sure why this is 0
-        ASSERT( contents[ 8 ] == 0 ); // Unused
+        ASSERT( U8At( 4 ) == 2 ); // 64-bit
+        ASSERT( U8At( 5 ) == 1 ); // Little-Endian
+        ASSERT( U8At( 6 ) == 1 ); // ELF version 1
+        ASSERT( U8At( 7 ) == 0 ); // Not sure why this is 0
+        ASSERT( U8At( 8 ) == 0 ); // Unused
         // PAD 9-15
 
-        ASSERT( LoadU16( contents.data() + 0x10 ) == 1 ); // ET_REL (relocatable file)
-        ASSERT( LoadU16( contents.data() + 0x12 ) == 0x3E ); // x86-64
+        ASSERT( U16At( 0x10 ) == 1 ); // ET_REL (relocatable file)
+        ASSERT( U16At( 0x12 ) == 0x3E ); // x86-64
 
-        ASSERT( LoadU32( contents.data() + 0x14 ) == 1 ); // ELF v1
+        ASSERT( U32At( 0x14 ) == 1 ); // ELF v1
 
-        ASSERT( LoadU64( contents.data() + 0x18 ) == 0 ); // Entry point offset
-        ASSERT( LoadU64( contents.data() + 0x20 ) == 0 ); // Program header offset
+        ASSERT( U64At( 0x18 ) == 0 ); // Entry point offset
+        ASSERT( U64At( 0x20 ) == 0 ); // Program header offset
 
-        section_header_offset = LoadU64( contents.data() + 0x28 );
+        section_header_offset = U64At( 0x28 );
         std::cout << "Section header offset = " << section_header_offset << "\n";
 
-        ASSERT( LoadU32( contents.data() + 0x30 ) == 0 ); // Flags
+        ASSERT( U32At( 0x30 ) == 0 ); // Flags
 
-        ASSERT( LoadU16( contents.data() + 0x34 ) == 64 ); // ELF Header size
-        ASSERT( LoadU16( contents.data() + 0x36 ) == 0 ); // Size of program header
-        ASSERT( LoadU16( contents.data() + 0x38 ) == 0 ); // program header num entries
+        ASSERT( U16At( 0x34 ) == 64 ); // ELF Header size
+        ASSERT( U16At( 0x36 ) == 0 ); // Size of program header
+        ASSERT( U16At( 0x38 ) == 0 ); // program header num entries
 
-        section_header_entry_size = LoadU16( contents.data() + 0x3A );
+        section_header_entry_size = U16At( 0x3A );
         std::cout << "Section header entry size = " << section_header_entry_size << "\n";
 
-        section_header_num_entries = LoadU16( contents.data() + 0x3C );
+        section_header_num_entries = U16At( 0x3C );
         std::cout << "Section header num entries = " << section_header_num_entries << "\n";
 
-        section_names_header_index = LoadU16( contents.data() + 0x3E );
+        section_names_header_index = U16At( 0x3E );
         std::cout << "Section names header index = " << section_names_header_index << "\n";
+    }
+
+    uint8_t U8At( uint64_t offset )
+    {
+        ASSERT( offset + 1 <= contents.size() );
+        uint8_t res = contents[ offset ];
+        return res;
+    }
+
+    uint16_t U16At( uint64_t offset )
+    {
+        ASSERT( offset + 2 <= contents.size() );
+        uint16_t res = 0;
+        res <<= 8; res += contents[ offset + 1 ];
+        res <<= 8; res += contents[ offset + 0 ];
+        return res;
+    }
+
+    uint32_t U32At( uint64_t offset )
+    {
+        ASSERT( offset + 4 <= contents.size() );
+        uint32_t res = 0;
+        res <<= 8; res += contents[ offset + 3 ];
+        res <<= 8; res += contents[ offset + 2 ];
+        res <<= 8; res += contents[ offset + 1 ];
+        res <<= 8; res += contents[ offset + 0 ];
+        return res;
+    }
+
+    uint64_t U64At( uint64_t offset )
+    {
+        ASSERT( offset + 8 <= contents.size() );
+        uint64_t res = 0;
+        res <<= 8; res += contents[ offset + 7 ];
+        res <<= 8; res += contents[ offset + 6 ];
+        res <<= 8; res += contents[ offset + 5 ];
+        res <<= 8; res += contents[ offset + 4 ];
+        res <<= 8; res += contents[ offset + 3 ];
+        res <<= 8; res += contents[ offset + 2 ];
+        res <<= 8; res += contents[ offset + 1 ];
+        res <<= 8; res += contents[ offset + 0 ];
+        return res;
     }
 
     std::vector< unsigned char > contents;
