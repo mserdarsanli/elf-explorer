@@ -99,6 +99,8 @@ std::string to_string( SectionFlagsBitfield f )
 }
 
 
+struct ELF_File;
+
 
 struct StringTable
 {
@@ -119,34 +121,8 @@ struct StringTable
 
 struct Symbol
 {
-    Symbol( const unsigned char *data, const StringTable &strtab, uint64_t offset )
-    {
-        const unsigned char *sym = data + offset;
-
-        m_name = strtab.StringAtOffset( LoadU32( sym ) );
-        m_info = LoadU8( sym + 4 );
-        m_visibility = LoadU8( sym + 5 );
-        m_section_idx = LoadU16( sym + 6 );
-        m_value = LoadU64( sym + 8 );
-        m_size = LoadU64( sym + 16 );
-    }
-
-    void Dump() const
-    {
-        std::cout << "Symbol\n";
-        std::cout << "  - name = " << m_name << "\n";
-        {
-            std::cout << "  - info\n";
-            uint8_t bind = m_info >> 4;
-            std::cout << "    - bind = " << ( bind == 0 ? "Local" : bind == 1 ? "Global" : bind == 2 ? "Weak" : "Unknown" ) << "( " << (int)bind << " )\n";
-            uint8_t type = m_info & 15;
-            std::cout << "    - type = " << (int)type << "\n";
-        }
-        std::cout << "  - visibility = " << (int)m_visibility << "\n";
-        std::cout << "  - section idx = " << m_section_idx << "\n";
-        std::cout << "  - value = " << m_value << "\n";
-        std::cout << "  - size = " << m_size << "\n";
-    }
+    Symbol( const ELF_File &ctx, uint64_t offset );
+    void Dump() const;
 
     std::string m_name;
     uint8_t m_info;
@@ -155,8 +131,6 @@ struct Symbol
     uint64_t m_value;
     uint64_t m_size;
 };
-
-struct ELF_File;
 
 struct SectionHeader
 {

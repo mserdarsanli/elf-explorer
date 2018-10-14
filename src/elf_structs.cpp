@@ -98,7 +98,7 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
 
     for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
     {
-        Symbol s( contents.data(), *strtab, symtab_offset + 24 * i );
+        Symbol s( *this, symtab_offset + 24 * i );
         s.Dump();
     }
 }
@@ -176,4 +176,31 @@ void SectionHeader::Dump() const
         std::cout << "  - addralign = " << m_addr_align << "\n";
     if ( m_ent_size )
         std::cout << "  - entsize   = " << m_ent_size << "\n";
+}
+
+Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
+{
+    m_name = ctx.strtab->StringAtOffset( ctx.U32At( offset ) );
+    m_info = ctx.U8At( offset + 4 );
+    m_visibility = ctx.U8At( offset + 5 );
+    m_section_idx = ctx.U16At( offset + 6 );
+    m_value = ctx.U64At( offset + 8 );
+    m_size = ctx.U64At( offset + 16 );
+}
+
+void Symbol::Dump() const
+{
+    std::cout << "Symbol\n";
+    std::cout << "  - name = " << m_name << "\n";
+    {
+        std::cout << "  - info\n";
+        uint8_t bind = m_info >> 4;
+        std::cout << "    - bind = " << ( bind == 0 ? "Local" : bind == 1 ? "Global" : bind == 2 ? "Weak" : "Unknown" ) << "( " << (int)bind << " )\n";
+        uint8_t type = m_info & 15;
+        std::cout << "    - type = " << (int)type << "\n";
+    }
+    std::cout << "  - visibility = " << (int)m_visibility << "\n";
+    std::cout << "  - section idx = " << m_section_idx << "\n";
+    std::cout << "  - value = " << m_value << "\n";
+    std::cout << "  - size = " << m_size << "\n";
 }
