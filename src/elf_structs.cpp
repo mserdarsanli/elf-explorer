@@ -157,7 +157,7 @@ SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
 void SectionHeader::Dump() const
 {
     std::cout << "  - name      = " << m_name << "\n";
-    std::cout << "  - type      = " << to_string( m_type ) << " (" << (int)m_type << ")\n";
+    std::cout << "  - type      = " << m_type << "\n";
     if ( m_attrs.m_val )
         std::cout << "  - attrs     = " << to_string( m_attrs ) << "\n";
     if ( m_address )

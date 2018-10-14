@@ -7,23 +7,14 @@
 #include <sstream>
 #include <vector>
 
+#include "enums.hpp"
+
 #define ASSERT( expr ) \
     if ( !( expr ) ) \
     { \
         throw std::runtime_error( "Assertion failed: " + std::string( #expr ) ); \
     }
 
-
-enum class SectionType : uint32_t
-{
-    ProgramData = 1,
-    SymbolTable = 2,
-    StringTable = 3,
-    RelocationEntries = 4,
-    Nobits = 8,
-    Constructors = 14,
-    Group = 17,
-};
 
 enum class SectionFlags : uint64_t
 {
@@ -48,22 +39,6 @@ struct SectionFlagsBitfield
 
     uint64_t m_val = 0;
 };
-
-inline // TODO
-std::string_view to_string( SectionType t )
-{
-    switch ( t )
-    {
-    case SectionType::ProgramData: return "ProgramData";
-    case SectionType::SymbolTable: return "SymbolTable";
-    case SectionType::StringTable: return "StringTable";
-    case SectionType::RelocationEntries: return "RelocationEntries";
-    case SectionType::Constructors: return "Constructors";
-    case SectionType::Group: return "Group";
-    case SectionType::Nobits: return "Nobits";
-    }
-    return "\033[31mUNKNOWN\033[0m";
-}
 
 enum class SymbolBinding : uint8_t
 {

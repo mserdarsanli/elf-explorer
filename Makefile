@@ -20,7 +20,9 @@ out/prog2.o: src/prog2.cpp
 	@mkdir -p out
 	$(CC) -c -o $@ $<
 
+src/enums.hpp: src/gen_enums.py
+	$< > $@
 
-out/symbol_renamer: $(wildcard src/*.cpp) $(wildcard src/*.hpp)
+out/symbol_renamer: $(wildcard src/*.cpp) $(wildcard src/*.hpp) src/enums.hpp
 	@mkdir -p out
 	$(CC) -o $@ src/symbol_renamer.cpp src/elf_structs.cpp
