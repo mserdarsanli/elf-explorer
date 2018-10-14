@@ -190,9 +190,9 @@ void Symbol::Dump() const
 {
     std::cout << "Symbol\n";
     std::cout << "  - name = " << m_name << "\n";
-    std::cout << "  - bind = " << to_string( m_binding ) << "\n";
-    std::cout << "  - type = " << to_string( m_type ) << "\n";
-    std::cout << "  - visibility = " << to_string( m_visibility ) << "\n";
+    std::cout << "  - bind = " << m_binding << "\n";
+    std::cout << "  - type = " << m_type << "\n";
+    std::cout << "  - visibility = " << m_visibility << "\n";
     std::cout << "  - section idx = " << m_section_idx << "\n";
     std::cout << "  - value = " << m_value << "\n";
     std::cout << "  - size = " << m_size << "\n";

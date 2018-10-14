@@ -17,6 +17,33 @@ Enums = [
             ( 'Group', 17 ),
         ],
     ),
+    Enum( name = 'SymbolBinding',
+        int_type = 'uint8_t',
+        values = [
+            ( 'Local', 0 ),
+            ( 'Global', 1 ),
+            ( 'Weak', 2 ),
+        ],
+    ),
+    Enum( name = 'SymbolType',
+        int_type = 'uint8_t',
+        values = [
+            ( 'NotSpecified', 0 ),
+            ( 'Object', 1 ),
+            ( 'Function', 2 ),
+            ( 'Section', 3 ),
+            ( 'File', 4 ),
+        ],
+    ),
+    Enum( name = 'SymbolVisibility',
+        int_type = 'uint8_t',
+        values = [
+            ( 'Default', 0 ),
+            ( 'Internal', 1 ),
+            ( 'Hidden', 2 ),
+            ( 'Protected', 3 ),
+        ],
+    ),
 ]
 
 out = []
