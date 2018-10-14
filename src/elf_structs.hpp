@@ -117,9 +117,6 @@ struct StringTable
     std::string m_str;
 };
 
-extern StringTable shstrtab; // TODO this should be part of ctx/file object
-
-
 struct Symbol
 {
     Symbol( const unsigned char *data, const StringTable &strtab, uint64_t offset )
@@ -195,4 +192,5 @@ struct ELF_File
     uint16_t section_names_header_index;
 
     std::optional< StringTable > strtab;
+    std::optional< StringTable > shstrtab;
 };

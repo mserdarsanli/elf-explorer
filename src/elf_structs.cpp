@@ -1,8 +1,5 @@
 #include "elf_structs.hpp"
 
-StringTable shstrtab; // TODO this should be part of ctx/file object
-
-
 ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     : contents( std::move( contents_ ) )
 {
@@ -152,7 +149,7 @@ SectionHeader::SectionHeader( const ELF_File &ctx, const unsigned char *data, ui
 {
     const unsigned char *sh = data + header_offset;
 
-    m_name = shstrtab.StringAtOffset( LoadU32( sh + 0x00 ) );
+    m_name = ctx.shstrtab->StringAtOffset( LoadU32( sh + 0x00 ) );
     m_type = static_cast< SectionType >( LoadU32( sh + 0x04 ) );
     m_attrs      = SectionFlagsBitfield( LoadU64( sh + 0x08 ) );
     m_address    = LoadU64( sh + 0x10 );
