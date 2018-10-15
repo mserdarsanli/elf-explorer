@@ -5,6 +5,7 @@
 #include <iostream>
 #include <optional>
 #include <sstream>
+#include <variant>
 #include <vector>
 
 #include "enums.hpp"
@@ -122,6 +123,21 @@ struct SectionHeader
     uint64_t m_ent_size;
 };
 
+// High-level structs
+
+struct StringTableSection
+{
+    std::string m_data;
+};
+
+struct Section
+{
+    std::string m_name;
+
+    std::variant< std::monostate // Unknown/Unset
+        , StringTableSection
+    > m_var;
+};
 
 struct ELF_File
 {
@@ -141,6 +157,8 @@ struct ELF_File
     uint16_t section_header_entry_size;
     uint16_t section_header_num_entries;
     uint16_t section_names_header_index;
+
+    std::vector< Section > m_sections;
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;

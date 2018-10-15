@@ -64,11 +64,18 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
 
     std::optional< SectionHeader > symtab_header;
 
-    std::cout << "Parsing section headers:\n";
+    std::vector< SectionHeader > section_headers;
+    section_headers.reserve( section_header_num_entries );
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
+        section_headers.emplace_back( *this, section_header_offset + section_header_entry_size * i );
+    }
+
+    std::cout << "Section headers:\n";
+    for ( size_t i = 0; i < section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = section_headers[ i ];
         std::cout << "\n- SectionHeader[ " << i << " ]\n";
-        SectionHeader sh( *this, section_header_offset + section_header_entry_size * i );
         sh.Dump();
 
         if ( sh.m_name == ".symtab" )
@@ -81,7 +88,15 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
             std::cout << "Initializing strtab\n";
             strtab = StringTable( *this, sh.m_offset );
         }
+
+        Section &sec = m_sections.emplace_back();
+        sec.m_name = sh.m_name;
+        if ( sh.m_type == SectionType::StringTable )
+        {
+            sec.m_var.emplace< StringTableSection >();
+        }
     }
+
 
     ASSERT( strtab );
     ASSERT( symtab_header );
@@ -94,6 +109,7 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
     {
         Symbol s( *this, symtab_offset + 24 * i );
+        std::cout << "Symbol[ " << i << " ]\n";
         s.Dump();
     }
 }
@@ -188,7 +204,6 @@ Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
 
 void Symbol::Dump() const
 {
-    std::cout << "Symbol\n";
     std::cout << "  - name = " << m_name << "\n";
     std::cout << "  - bind = " << m_binding << "\n";
     std::cout << "  - type = " << m_type << "\n";
