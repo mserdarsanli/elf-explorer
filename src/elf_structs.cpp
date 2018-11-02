@@ -78,6 +78,11 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
         std::cout << "\n- SectionHeader[ " << i << " ]\n";
         sh.Dump();
 
+        if ( sh.m_type == SectionType::Group )
+        {
+            DumpGroupSection( sh.m_offset, GetSectionSize( sh.m_offset ) );
+        }
+
         if ( sh.m_name == ".symtab" )
         {
             symtab_header = sh;
@@ -111,6 +116,24 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
         Symbol s( *this, symtab_offset + 24 * i );
         std::cout << "Symbol[ " << i << " ]\n";
         s.Dump();
+    }
+}
+
+void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const
+{
+    ASSERT( size % 4 == 0 );
+
+    ASSERT( U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
+
+    std::cout << "    Dumping GROUP section at " << offset << " with size " << size << "\n";
+    std::cout << "    - flags: GRP_COMDAT\n";
+
+    uint64_t it = offset + 4;
+    uint64_t end = offset + size;
+
+    for ( ; it != end; it += 4 )
+    {
+        std::cout << "    - section_header_idx : " << U32At( it ) << "\n";
     }
 }
 

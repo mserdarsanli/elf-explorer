@@ -149,6 +149,7 @@ struct ELF_File
     uint64_t U64At( uint64_t offset ) const;
 
     uint64_t GetSectionSize( uint64_t section_offset ) const;
+    void DumpGroupSection( uint64_t offset, uint64_t size ) const;
 
     std::vector< unsigned char > contents;
     mutable std::vector< bool > m_read; // Mark all the read bytes
