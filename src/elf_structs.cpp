@@ -1,6 +1,6 @@
 #include "elf_structs.hpp"
 
-ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
+ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&contents_ )
     : contents( std::move( contents_ ) )
     , m_read( contents.size(), false )
 {
@@ -55,6 +55,13 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     }
     std::sort( section_offsets.begin(), section_offsets.end() );
 
+    std::cout << "Section offsets:";
+    for ( uint64_t o : section_offsets )
+    {
+        std::cout << "  " << o << ",";
+    }
+    std::cout << "\n";
+
 
     // TODO make this a member var
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
@@ -75,12 +82,30 @@ ELF_File::ELF_File( std::vector< unsigned char > &&contents_ )
     for ( size_t i = 0; i < section_headers.size(); ++i )
     {
         const SectionHeader &sh = section_headers[ i ];
-        std::cout << "\n- SectionHeader[ " << i << " ]\n";
+        std::cout << "\n- SectionHeader[ " << i << " ] size = " << GetSectionSize( sh.m_offset ) << std::endl;
         sh.Dump();
 
         if ( sh.m_type == SectionType::Group )
         {
             DumpGroupSection( sh.m_offset, GetSectionSize( sh.m_offset ) );
+        }
+
+        if ( sh.m_type == SectionType::ProgramData && ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable ) )
+        {
+            uint64_t begin = sh.m_offset;
+            uint64_t end = begin + GetSectionSize( begin );
+
+            for ( auto i = begin; i < end; ++i )
+            {
+                (void)U8At( i );
+            }
+
+            {
+                std::stringstream cmd;
+                cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
+                std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
+                system( cmd.str().c_str() );
+            }
         }
 
         if ( sh.m_name == ".symtab" )

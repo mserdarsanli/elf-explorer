@@ -141,7 +141,7 @@ struct Section
 
 struct ELF_File
 {
-    ELF_File( std::vector< unsigned char > &&contents_ );
+    ELF_File( std::string_view file_name, std::vector< unsigned char > &&contents_ );
 
     uint8_t U8At( uint64_t offset ) const;
     uint16_t U16At( uint64_t offset ) const;

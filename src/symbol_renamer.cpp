@@ -30,7 +30,7 @@ int main( int argc, char* argv[] )
         input_file.read( (char*)contents.data(), file_size );
     }
 
-    ELF_File file( std::move( contents ) );
+    ELF_File file( argv[ 1 ], std::move( contents ) );
     std::cout << "File looks fine.\n";
 
 
