@@ -87,7 +87,7 @@ struct StringTable
 {
     StringTable() = default;
 
-    StringTable( const ELF_File &ctx, uint64_t section_offset );
+    StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size );
     std::string_view StringAtOffset( uint64_t string_offset ) const;
 
     std::string m_str;
@@ -117,6 +117,7 @@ struct SectionHeader
     SectionFlagsBitfield m_attrs;
     uint64_t m_address;
     uint64_t m_offset;
+    uint64_t m_size;
     uint32_t m_asso_idx;
     uint32_t m_info;
     uint64_t m_addr_align;
@@ -148,7 +149,6 @@ struct ELF_File
     uint32_t U32At( uint64_t offset ) const;
     uint64_t U64At( uint64_t offset ) const;
 
-    uint64_t GetSectionSize( uint64_t section_offset ) const;
     void DumpGroupSection( uint64_t offset, uint64_t size ) const;
 
     std::vector< unsigned char > contents;

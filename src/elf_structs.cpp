@@ -67,7 +67,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
     uint64_t shstrtab_offset = U64At( shstrtab_header_offset + 0x18 );
     std::cout << "Initializing shstrtab\n";
-    shstrtab = StringTable( *this, shstrtab_offset );
+    shstrtab = StringTable( *this, shstrtab_offset, U64At( shstrtab_header_offset + 0x20 ) );
 
     std::optional< SectionHeader > symtab_header;
 
@@ -82,15 +82,15 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
     for ( size_t i = 0; i < section_headers.size(); ++i )
     {
         const SectionHeader &sh = section_headers[ i ];
-        std::cout << "\n- SectionHeader[ " << i << " ] size = " << GetSectionSize( sh.m_offset ) << std::endl;
+        std::cout << "\n- SectionHeader[ " << i << " ]" << std::endl;
         sh.Dump();
 
         uint64_t begin = sh.m_offset;
-        uint64_t end = begin + GetSectionSize( begin );
+        uint64_t end = begin + sh.m_size;
 
         if ( sh.m_type == SectionType::Group )
         {
-            DumpGroupSection( sh.m_offset, GetSectionSize( sh.m_offset ) );
+            DumpGroupSection( sh.m_offset, sh.m_size );
         }
 
         if ( sh.m_type == SectionType::ProgramData && ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable ) )
@@ -127,7 +127,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
         if ( sh.m_name == ".strtab" )
         {
             std::cout << "Initializing strtab\n";
-            strtab = StringTable( *this, sh.m_offset );
+            strtab = StringTable( *this, sh.m_offset, sh.m_size );
         }
 
         Section &sec = m_sections.emplace_back();
@@ -143,7 +143,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
     ASSERT( symtab_header );
     ASSERT( symtab_header->m_ent_size == 24 );
     uint64_t symtab_offset = symtab_header->m_offset;
-    uint64_t symtab_elem_cnt = GetSectionSize( symtab_offset ) / 24;
+    uint64_t symtab_elem_cnt = symtab_header->m_size / 24;
     std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
     ASSERT( symtab_elem_cnt != 0 );
 
@@ -223,6 +223,7 @@ SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
     m_attrs      = SectionFlagsBitfield( ctx.U64At( offset + 0x08 ) );
     m_address    = ctx.U64At( offset + 0x10 );
     m_offset     = ctx.U64At( offset + 0x18 );
+    m_size       = ctx.U64At( offset + 0x20 );
     m_asso_idx   = ctx.U32At( offset + 0x28 );
     m_info       = ctx.U32At( offset + 0x2c );
     m_addr_align = ctx.U64At( offset + 0x30 );
@@ -239,6 +240,7 @@ void SectionHeader::Dump() const
         std::cout << "  - address   = " << m_address << "\n";
     if ( m_offset )
         std::cout << "  - offset    = " << m_offset << "\n";
+    std::cout << "  - size  = " << m_size << "\n";
     if ( m_asso_idx )
         std::cout << "  - asso idx  = " << m_asso_idx << "\n";
     if ( m_info )
@@ -272,27 +274,13 @@ void Symbol::Dump() const
     std::cout << "  - size = " << m_size << "\n";
 }
 
-// Since sections sizes are not stored, this computes it by finding offset fidderence
-// with the next section. Not sure if this is correct.
-uint64_t ELF_File::GetSectionSize( uint64_t section_offset ) const
+StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size )
 {
-    auto it = std::lower_bound( section_offsets.begin(), section_offsets.end(), section_offset );
-    ASSERT( it != section_offsets.end() );
-    ASSERT( *it == section_offset );
-
-    ++it;
-    uint64_t end_offset = ( it != section_offsets.end() ? *it : contents.size() );
-    return end_offset - section_offset;
-}
-
-StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset )
-{
-    uint64_t end_offset = ctx.GetSectionSize( section_offset );
-    for ( uint64_t i = section_offset; i < end_offset; ++i )
+    for ( uint64_t i = 0; i < size; ++i )
     {
         ctx.m_read[ i ] = true;
     }
-    m_str.assign( (const char*)ctx.contents.data() + section_offset, end_offset );
+    m_str.assign( (const char*)ctx.contents.data() + section_offset, size );
 }
 
 std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const
