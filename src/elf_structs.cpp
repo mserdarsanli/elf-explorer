@@ -85,6 +85,9 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
         std::cout << "\n- SectionHeader[ " << i << " ] size = " << GetSectionSize( sh.m_offset ) << std::endl;
         sh.Dump();
 
+        uint64_t begin = sh.m_offset;
+        uint64_t end = begin + GetSectionSize( begin );
+
         if ( sh.m_type == SectionType::Group )
         {
             DumpGroupSection( sh.m_offset, GetSectionSize( sh.m_offset ) );
@@ -92,9 +95,6 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
 
         if ( sh.m_type == SectionType::ProgramData && ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable ) )
         {
-            uint64_t begin = sh.m_offset;
-            uint64_t end = begin + GetSectionSize( begin );
-
             for ( auto i = begin; i < end; ++i )
             {
                 (void)U8At( i );
@@ -106,6 +106,17 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
                 std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
                 system( cmd.str().c_str() );
             }
+        }
+
+        if ( sh.m_type == SectionType::StringTable )
+        {
+            std::cout << "Dumping StringTable:\n";
+            for ( auto i = begin; i < end; ++i )
+            {
+                char c = (char)U8At( i );
+                std::cout << ( isprint( c ) ? c : '.' );
+            }
+            std::cout << "\n";
         }
 
         if ( sh.m_name == ".symtab" )
