@@ -148,11 +148,11 @@ struct ELF_File
     uint16_t U16At( uint64_t offset ) const;
     uint32_t U32At( uint64_t offset ) const;
     uint64_t U64At( uint64_t offset ) const;
+    void SetRead( uint64_t offset ) const;
 
     void DumpGroupSection( uint64_t offset, uint64_t size ) const;
 
     std::vector< unsigned char > contents;
-    mutable std::vector< bool > m_read; // Mark all the read bytes
 
     uint64_t section_header_offset;
     uint16_t section_header_entry_size;
@@ -165,4 +165,6 @@ struct ELF_File
     std::optional< StringTable > shstrtab;
 
     std::vector< uint64_t > section_offsets;
+
+    mutable std::vector< bool > m_read; // Mark all the read bytes
 };
