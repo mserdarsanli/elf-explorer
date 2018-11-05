@@ -165,12 +165,14 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
                 uint64_t ent_offset = sh.m_offset + 24 * i;
 
                 uint64_t offset = U64At( ent_offset + 0x00 );
-                uint64_t info   = U64At( ent_offset + 0x08 );
+                uint32_t sym    = U32At( ent_offset + 0x08 );
+                uint32_t type   = U32At( ent_offset + 0x0c );
                 int64_t addend  = U64At( ent_offset + 0x10 );
 
                 std::cout << "RelocationEntry[ " << i << " ]:\n";
                 std::cout << "  - offset = " << offset << "\n";
-                std::cout << "  - info = " << info << "\n";
+                std::cout << "  - sym = " << sym << "\n";
+                std::cout << "  - type = " << type << "\n";
                 std::cout << "  - addend = " << addend << "\n";
             }
         }
