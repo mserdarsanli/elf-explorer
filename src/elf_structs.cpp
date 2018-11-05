@@ -155,6 +155,25 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
             DumpBinaryData( StringViewAt( sh.m_offset, sh.m_size ) );
         }
 
+        if ( sh.m_type == SectionType::RelocationEntries )
+        {
+            ASSERT( sh.m_ent_size == 24 );
+            ASSERT( sh.m_size % 24 == 0 );
+
+            for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
+            {
+                uint64_t ent_offset = sh.m_offset + 24 * i;
+
+                uint64_t offset = U64At( ent_offset + 0x00 );
+                uint64_t info   = U64At( ent_offset + 0x08 );
+                int64_t addend  = U64At( ent_offset + 0x10 );
+
+                std::cout << "RelocationEntry[ " << i << " ]:\n";
+                std::cout << "  - offset = " << offset << "\n";
+                std::cout << "  - info = " << info << "\n";
+                std::cout << "  - addend = " << addend << "\n";
+            }
+        }
 
         if ( sh.m_type == SectionType::StringTable )
         {
