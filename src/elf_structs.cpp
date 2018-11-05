@@ -93,7 +93,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
             DumpGroupSection( sh.m_offset, sh.m_size );
         }
 
-        if ( sh.m_type == SectionType::ProgramData )
+        if ( sh.m_type == SectionType::ProgramData || sh.m_type == SectionType::Nobits )
         {
             if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
             {
