@@ -5,6 +5,7 @@
 #include <iostream>
 #include <optional>
 #include <sstream>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -148,6 +149,8 @@ struct ELF_File
     uint16_t U16At( uint64_t offset ) const;
     uint32_t U32At( uint64_t offset ) const;
     uint64_t U64At( uint64_t offset ) const;
+    std::string_view StringViewAt( uint64_t offset, uint64_t size ) const;
+
     void SetRead( uint64_t offset ) const;
 
     void DumpGroupSection( uint64_t offset, uint64_t size ) const;

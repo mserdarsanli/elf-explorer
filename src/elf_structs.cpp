@@ -1,5 +1,41 @@
 #include "elf_structs.hpp"
 
+static void DumpBinaryData( std::string_view s )
+{
+    if ( s.size() == 0 )
+    {
+        return;
+    }
+
+    const int indent = 4;
+    std::cout << "In Binary:\n";
+    for ( uint64_t i = 0; i < s.size(); i += 20 )
+    {
+        std::stringstream render_print;
+        std::stringstream render_hex;
+
+        uint64_t j = 0;
+        for ( ; j < 20 && j + i < s.size(); ++j )
+        {
+            auto hex = []( int a ) -> char
+            {
+                if ( a < 10 ) return '0' + a;
+                return a - 10 + 'a';
+            };
+
+            uint8_t c = s[ i + j ];
+            render_print << ( isprint( c ) ? (char)c : '.' );
+            render_hex << " " << hex( c / 16 ) << hex( c % 16 );
+        }
+        for ( ; j < 20 ; ++j )
+        {
+            render_print << " ";
+        }
+
+        std::cout << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
+    }
+}
+
 ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&contents_ )
     : contents( std::move( contents_ ) )
     , m_read( contents.size(), false )
@@ -93,7 +129,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
             DumpGroupSection( sh.m_offset, sh.m_size );
         }
 
-        if ( sh.m_type == SectionType::ProgramData || sh.m_type == SectionType::Nobits )
+        if ( sh.m_type == SectionType::ProgramData )
         {
             if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
             {
@@ -110,34 +146,15 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
             }
             else
             {
-                std::cout << "Program Data in binary:\n";
-                for ( uint64_t i = 0; i < sh.m_size; i += 20 )
-                {
-                    std::stringstream render_print;
-                    std::stringstream render_hex;
-
-                    uint64_t j = 0;
-                    for ( ; j < 20 && j + i < sh.m_size; ++j )
-                    {
-                        auto hex = []( int a ) -> char
-                        {
-                            if ( a < 10 ) return '0' + a;
-                            return a - 10 + 'a';
-                        };
-
-                        uint8_t c = U8At( begin + i + j );
-                        render_print << ( isprint( c ) ? (char)c : '.' );
-                        render_hex << " " << hex( c / 16 ) << hex( c % 16 );
-                    }
-                    for ( ; j < 20 ; ++j )
-                    {
-                        render_print << " ";
-                    }
-
-                    std::cout << render_print.str() << "  " << render_hex.str() << "\n";
-                }
+                DumpBinaryData( StringViewAt( sh.m_offset, sh.m_size ) );
             }
         }
+
+        if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
+        {
+            DumpBinaryData( StringViewAt( sh.m_offset, sh.m_size ) );
+        }
+
 
         if ( sh.m_type == SectionType::StringTable )
         {
@@ -207,6 +224,15 @@ void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const
 void ELF_File::SetRead( uint64_t offset ) const
 {
     m_read[ offset ] = true;
+}
+
+std::string_view ELF_File::StringViewAt( uint64_t offset, uint64_t size ) const
+{
+    for ( uint64_t i = 0; i < size; ++i )
+    {
+        SetRead( offset + i );
+    }
+    return std::string_view( (const char*)contents.data() + offset, size );
 }
 
 uint8_t ELF_File::U8At( uint64_t offset ) const
