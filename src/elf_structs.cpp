@@ -93,18 +93,49 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
             DumpGroupSection( sh.m_offset, sh.m_size );
         }
 
-        if ( sh.m_type == SectionType::ProgramData && ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable ) )
+        if ( sh.m_type == SectionType::ProgramData )
         {
-            for ( auto i = begin; i < end; ++i )
+            if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
             {
-                (void)U8At( i );
-            }
+                for ( auto i = begin; i < end; ++i )
+                {
+                    // Read by external prog, mark them here
+                    (void)U8At( i );
+                }
 
-            {
                 std::stringstream cmd;
                 cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
                 std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
                 system( cmd.str().c_str() );
+            }
+            else
+            {
+                std::cout << "Program Data in binary:\n";
+                for ( uint64_t i = 0; i < sh.m_size; i += 20 )
+                {
+                    std::stringstream render_print;
+                    std::stringstream render_hex;
+
+                    uint64_t j = 0;
+                    for ( ; j < 20 && j + i < sh.m_size; ++j )
+                    {
+                        auto hex = []( int a ) -> char
+                        {
+                            if ( a < 10 ) return '0' + a;
+                            return a - 10 + 'a';
+                        };
+
+                        uint8_t c = U8At( begin + i + j );
+                        render_print << ( isprint( c ) ? (char)c : '.' );
+                        render_hex << " " << hex( c / 16 ) << hex( c % 16 );
+                    }
+                    for ( ; j < 20 ; ++j )
+                    {
+                        render_print << " ";
+                    }
+
+                    std::cout << render_print.str() << "  " << render_hex.str() << "\n";
+                }
             }
         }
 
