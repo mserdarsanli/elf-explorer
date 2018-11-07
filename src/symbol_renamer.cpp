@@ -35,15 +35,16 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    ELF_File file( argv[ 1 ], read_file( argv[ 1 ] ) );
+    InputBuffer input( argv[ 1 ], read_file( argv[ 1 ] ) );
+    ELF_File file( input );
     std::cout << "File looks fine.\n";
 
 
     bool in_read_sec = true;
     // Report unread parts of the file
-    for ( size_t i = 0; i < file.m_read.size(); ++i )
+    for ( size_t i = 0; i < input.m_read.size(); ++i )
     {
-        bool read = file.m_read[ i ];
+        bool read = input.m_read[ i ];
 
         if ( in_read_sec )
         {

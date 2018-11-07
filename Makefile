@@ -1,5 +1,8 @@
 CC = g++ -std=c++17 -Wall -Wpedantic
 
+.PHONY: all
+all: out/prog1.o out/prog2.o out/symbol_renamer
+
 .PHONY: clean
 clean:
 	rm -rf out
@@ -25,4 +28,4 @@ src/enums.hpp: src/gen_enums.py
 
 out/symbol_renamer: $(wildcard src/*.cpp) $(wildcard src/*.hpp) src/enums.hpp
 	@mkdir -p out
-	$(CC) -o $@ src/symbol_renamer.cpp src/elf_structs.cpp
+	$(CC) -o $@ src/symbol_renamer.cpp src/elf_structs.cpp src/input_buffer.cpp

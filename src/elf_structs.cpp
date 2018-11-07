@@ -36,50 +36,49 @@ static void DumpBinaryData( std::string_view s )
     }
 }
 
-ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&contents_ )
-    : contents( std::move( contents_ ) )
-    , m_read( contents.size(), false )
+ELF_File::ELF_File( InputBuffer &input_ )
+    : input( input_ )
 {
-    ASSERT( U8At( 0 ) == 0x7F );
-    ASSERT( U8At( 1 ) == 'E' );
-    ASSERT( U8At( 2 ) == 'L' );
-    ASSERT( U8At( 3 ) == 'F' );
+    ASSERT( input.U8At( 0 ) == 0x7F );
+    ASSERT( input.U8At( 1 ) == 'E' );
+    ASSERT( input.U8At( 2 ) == 'L' );
+    ASSERT( input.U8At( 3 ) == 'F' );
 
-    ASSERT( U8At( 4 ) == 2 ); // 64-bit
-    ASSERT( U8At( 5 ) == 1 ); // Little-Endian
-    ASSERT( U8At( 6 ) == 1 ); // ELF version 1
-    ASSERT( U8At( 7 ) == 0 || U8At( 7 ) == 3 ); // Not sure why this is 0
-    ASSERT( U8At( 8 ) == 0 ); // Unused
+    ASSERT( input.U8At( 4 ) == 2 ); // 64-bit
+    ASSERT( input.U8At( 5 ) == 1 ); // Little-Endian
+    ASSERT( input.U8At( 6 ) == 1 ); // ELF version 1
+    ASSERT( input.U8At( 7 ) == 0 || input.U8At( 7 ) == 3 ); // Not sure why this is 0
+    ASSERT( input.U8At( 8 ) == 0 ); // Unused
 
     for ( int i = 9; i <= 15; ++i )
     {
-        ASSERT( U8At( i ) == 0 ); // Force read these bytes ...
+        ASSERT( input.U8At( i ) == 0 ); // Force read these bytes ...
     }
 
-    ASSERT( U16At( 0x10 ) == 1 ); // ET_REL (relocatable file)
-    ASSERT( U16At( 0x12 ) == 0x3E ); // x86-64
+    ASSERT( input.U16At( 0x10 ) == 1 ); // ET_REL (relocatable file)
+    ASSERT( input.U16At( 0x12 ) == 0x3E ); // x86-64
 
-    ASSERT( U32At( 0x14 ) == 1 ); // ELF v1
+    ASSERT( input.U32At( 0x14 ) == 1 ); // ELF v1
 
-    ASSERT( U64At( 0x18 ) == 0 ); // Entry point offset
-    ASSERT( U64At( 0x20 ) == 0 ); // Program header offset
+    ASSERT( input.U64At( 0x18 ) == 0 ); // Entry point offset
+    ASSERT( input.U64At( 0x20 ) == 0 ); // Program header offset
 
-    section_header_offset = U64At( 0x28 );
+    section_header_offset = input.U64At( 0x28 );
     std::cout << "Section header offset = " << section_header_offset << "\n";
 
-    ASSERT( U32At( 0x30 ) == 0 ); // Flags
+    ASSERT( input.U32At( 0x30 ) == 0 ); // Flags
 
-    ASSERT( U16At( 0x34 ) == 64 ); // ELF Header size
-    ASSERT( U16At( 0x36 ) == 0 ); // Size of program header
-    ASSERT( U16At( 0x38 ) == 0 ); // program header num entries
+    ASSERT( input.U16At( 0x34 ) == 64 ); // ELF Header size
+    ASSERT( input.U16At( 0x36 ) == 0 ); // Size of program header
+    ASSERT( input.U16At( 0x38 ) == 0 ); // program header num entries
 
-    section_header_entry_size = U16At( 0x3A );
+    section_header_entry_size = input.U16At( 0x3A );
     std::cout << "Section header entry size = " << section_header_entry_size << "\n";
 
-    section_header_num_entries = U16At( 0x3C );
+    section_header_num_entries = input.U16At( 0x3C );
     std::cout << "Section header num entries = " << section_header_num_entries << "\n";
 
-    section_names_header_index = U16At( 0x3E );
+    section_names_header_index = input.U16At( 0x3E );
     std::cout << "Section names header index = " << section_names_header_index << "\n";
 
 
@@ -87,7 +86,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
         uint64_t header_offset = section_header_offset + section_header_entry_size * i;
-        section_offsets.push_back( U64At( header_offset + 0x18 ) );
+        section_offsets.push_back( input.U64At( header_offset + 0x18 ) );
     }
     std::sort( section_offsets.begin(), section_offsets.end() );
 
@@ -101,9 +100,9 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
 
     // TODO make this a member var
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
-    uint64_t shstrtab_offset = U64At( shstrtab_header_offset + 0x18 );
+    uint64_t shstrtab_offset = input.U64At( shstrtab_header_offset + 0x18 );
     std::cout << "Initializing shstrtab\n";
-    shstrtab = StringTable( *this, shstrtab_offset, U64At( shstrtab_header_offset + 0x20 ) );
+    shstrtab = StringTable( *this, shstrtab_offset, input.U64At( shstrtab_header_offset + 0x20 ) );
 
     std::optional< SectionHeader > symtab_header;
 
@@ -136,23 +135,23 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
                 for ( auto i = begin; i < end; ++i )
                 {
                     // Read by external prog, mark them here
-                    (void)U8At( i );
+                    (void)input.U8At( i );
                 }
 
                 std::stringstream cmd;
-                cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
+                cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
                 std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
                 system( cmd.str().c_str() );
             }
             else
             {
-                DumpBinaryData( StringViewAt( sh.m_offset, sh.m_size ) );
+                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
             }
         }
 
         if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
         {
-            DumpBinaryData( StringViewAt( sh.m_offset, sh.m_size ) );
+            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
         }
 
         if ( sh.m_type == SectionType::RelocationEntries )
@@ -164,10 +163,10 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
             {
                 uint64_t ent_offset = sh.m_offset + 24 * i;
 
-                uint64_t offset = U64At( ent_offset + 0x00 );
-                uint32_t sym    = U32At( ent_offset + 0x08 );
-                uint32_t type   = U32At( ent_offset + 0x0c );
-                int64_t addend  = U64At( ent_offset + 0x10 );
+                uint64_t offset = input.U64At( ent_offset + 0x00 );
+                uint32_t sym    = input.U32At( ent_offset + 0x08 );
+                uint32_t type   = input.U32At( ent_offset + 0x0c );
+                int64_t addend  = input.U64At( ent_offset + 0x10 );
 
                 std::cout << "RelocationEntry[ " << i << " ]:\n";
                 std::cout << "  - offset = " << offset << "\n";
@@ -182,7 +181,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
             std::cout << "Dumping StringTable:\n";
             for ( auto i = begin; i < end; ++i )
             {
-                char c = (char)U8At( i );
+                char c = (char)input.U8At( i );
                 std::cout << ( isprint( c ) ? c : '.' );
             }
             std::cout << "\n";
@@ -228,7 +227,7 @@ void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const
 {
     ASSERT( size % 4 == 0 );
 
-    ASSERT( U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
+    ASSERT( input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
 
     std::cout << "    Dumping GROUP section at " << offset << " with size " << size << "\n";
     std::cout << "    - flags: GRP_COMDAT\n";
@@ -238,79 +237,22 @@ void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const
 
     for ( ; it != end; it += 4 )
     {
-        std::cout << "    - section_header_idx : " << U32At( it ) << "\n";
+        std::cout << "    - section_header_idx : " << input.U32At( it ) << "\n";
     }
-}
-
-void ELF_File::SetRead( uint64_t offset ) const
-{
-    m_read[ offset ] = true;
-}
-
-std::string_view ELF_File::StringViewAt( uint64_t offset, uint64_t size ) const
-{
-    for ( uint64_t i = 0; i < size; ++i )
-    {
-        SetRead( offset + i );
-    }
-    return std::string_view( (const char*)contents.data() + offset, size );
-}
-
-uint8_t ELF_File::U8At( uint64_t offset ) const
-{
-    ASSERT( offset + 1 <= contents.size() );
-    SetRead( offset );
-    uint8_t res = contents[ offset ];
-    return res;
-}
-
-uint16_t ELF_File::U16At( uint64_t offset ) const
-{
-    ASSERT( offset + 2 <= contents.size() );
-    uint16_t res = 0;
-    res <<= 8; res += U8At( offset + 1 );
-    res <<= 8; res += U8At( offset + 0 );
-    return res;
-}
-
-uint32_t ELF_File::U32At( uint64_t offset ) const
-{
-    ASSERT( offset + 4 <= contents.size() );
-    uint32_t res = 0;
-    res <<= 8; res += U8At( offset + 3 );
-    res <<= 8; res += U8At( offset + 2 );
-    res <<= 8; res += U8At( offset + 1 );
-    res <<= 8; res += U8At( offset + 0 );
-    return res;
-}
-
-uint64_t ELF_File::U64At( uint64_t offset ) const
-{
-    ASSERT( offset + 8 <= contents.size() );
-    uint64_t res = 0;
-    res <<= 8; res += U8At( offset + 7 );
-    res <<= 8; res += U8At( offset + 6 );
-    res <<= 8; res += U8At( offset + 5 );
-    res <<= 8; res += U8At( offset + 4 );
-    res <<= 8; res += U8At( offset + 3 );
-    res <<= 8; res += U8At( offset + 2 );
-    res <<= 8; res += U8At( offset + 1 );
-    res <<= 8; res += U8At( offset + 0 );
-    return res;
 }
 
 SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
 {
-    m_name = ctx.shstrtab->StringAtOffset( ctx.U32At( offset + 0x00 ) );
-    m_type = static_cast< SectionType >( ctx.U32At( offset + 0x04 ) );
-    m_attrs      = SectionFlagsBitfield( ctx.U64At( offset + 0x08 ) );
-    m_address    = ctx.U64At( offset + 0x10 );
-    m_offset     = ctx.U64At( offset + 0x18 );
-    m_size       = ctx.U64At( offset + 0x20 );
-    m_asso_idx   = ctx.U32At( offset + 0x28 );
-    m_info       = ctx.U32At( offset + 0x2c );
-    m_addr_align = ctx.U64At( offset + 0x30 );
-    m_ent_size   = ctx.U64At( offset + 0x38 );
+    m_name = ctx.shstrtab->StringAtOffset( ctx.input.U32At( offset + 0x00 ) );
+    m_type = static_cast< SectionType >( ctx.input.U32At( offset + 0x04 ) );
+    m_attrs      = SectionFlagsBitfield( ctx.input.U64At( offset + 0x08 ) );
+    m_address    = ctx.input.U64At( offset + 0x10 );
+    m_offset     = ctx.input.U64At( offset + 0x18 );
+    m_size       = ctx.input.U64At( offset + 0x20 );
+    m_asso_idx   = ctx.input.U32At( offset + 0x28 );
+    m_info       = ctx.input.U32At( offset + 0x2c );
+    m_addr_align = ctx.input.U64At( offset + 0x30 );
+    m_ent_size   = ctx.input.U64At( offset + 0x38 );
 }
 
 void SectionHeader::Dump() const
@@ -336,14 +278,14 @@ void SectionHeader::Dump() const
 
 Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
 {
-    m_name = ctx.strtab->StringAtOffset( ctx.U32At( offset ) );
-    uint8_t info = ctx.U8At( offset + 4 );
+    m_name = ctx.strtab->StringAtOffset( ctx.input.U32At( offset ) );
+    uint8_t info = ctx.input.U8At( offset + 4 );
     m_binding = static_cast< SymbolBinding >( info >> 4 );
     m_type = static_cast< SymbolType >( info & 15 );
-    m_visibility = static_cast< SymbolVisibility >( ctx.U8At( offset + 5 ) );
-    m_section_idx = ctx.U16At( offset + 6 );
-    m_value = ctx.U64At( offset + 8 );
-    m_size = ctx.U64At( offset + 16 );
+    m_visibility = static_cast< SymbolVisibility >( ctx.input.U8At( offset + 5 ) );
+    m_section_idx = ctx.input.U16At( offset + 6 );
+    m_value = ctx.input.U64At( offset + 8 );
+    m_size = ctx.input.U64At( offset + 16 );
 }
 
 void Symbol::Dump() const
@@ -361,9 +303,9 @@ StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t
 {
     for ( uint64_t i = 0; i < size; ++i )
     {
-        ctx.SetRead( section_offset + i );
+        (void)ctx.input.U8At( section_offset + i ); // Set read
     }
-    m_str.assign( (const char*)ctx.contents.data() + section_offset, size );
+    m_str.assign( (const char*)ctx.input.contents.data() + section_offset, size );
 }
 
 std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const
