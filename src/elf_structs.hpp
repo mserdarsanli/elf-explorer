@@ -10,13 +10,7 @@
 #include <vector>
 
 #include "enums.hpp"
-
-#define ASSERT( expr ) \
-    if ( !( expr ) ) \
-    { \
-        throw std::runtime_error( "Assertion failed: " + std::string( #expr ) ); \
-    }
-
+#include "input_buffer.hpp"
 
 enum class SectionFlags : uint64_t
 {
@@ -143,19 +137,9 @@ struct Section
 
 struct ELF_File
 {
-    ELF_File( std::string_view file_name, std::vector< unsigned char > &&contents_ );
-
-    uint8_t U8At( uint64_t offset ) const;
-    uint16_t U16At( uint64_t offset ) const;
-    uint32_t U32At( uint64_t offset ) const;
-    uint64_t U64At( uint64_t offset ) const;
-    std::string_view StringViewAt( uint64_t offset, uint64_t size ) const;
-
-    void SetRead( uint64_t offset ) const;
+    ELF_File( InputBuffer & );
 
     void DumpGroupSection( uint64_t offset, uint64_t size ) const;
-
-    std::vector< unsigned char > contents;
 
     uint64_t section_header_offset;
     uint16_t section_header_entry_size;
@@ -169,5 +153,5 @@ struct ELF_File
 
     std::vector< uint64_t > section_offsets;
 
-    mutable std::vector< bool > m_read; // Mark all the read bytes
+    InputBuffer &input;
 };
