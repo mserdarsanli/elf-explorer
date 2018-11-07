@@ -10,6 +10,22 @@
 
 #include "elf_structs.hpp"
 
+static std::vector< unsigned char > read_file( const char *file_name )
+{
+    std::vector< unsigned char > contents;
+
+    std::ifstream input_file;
+    input_file.exceptions( std::ifstream::failbit | std::ifstream::badbit );
+    input_file.open( file_name, std::ios::binary | std::ios::ate );
+    auto file_size = input_file.tellg();
+    input_file.seekg( 0, std::ios::beg );
+
+    contents.resize( file_size );
+    input_file.read( (char*)contents.data(), file_size );
+
+    return contents;
+}
+
 
 int main( int argc, char* argv[] )
 {
@@ -19,18 +35,7 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    std::vector< unsigned char > contents;
-    // TODO no error checks done
-    {
-        std::ifstream input_file( argv[ 1 ], std::ios::binary | std::ios::ate );
-        auto file_size = input_file.tellg();
-        input_file.seekg( 0, std::ios::beg );
-
-        contents.resize( file_size );
-        input_file.read( (char*)contents.data(), file_size );
-    }
-
-    ELF_File file( argv[ 1 ], std::move( contents ) );
+    ELF_File file( argv[ 1 ], read_file( argv[ 1 ] ) );
     std::cout << "File looks fine.\n";
 
 
