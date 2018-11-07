@@ -40,28 +40,30 @@ int main( int argc, char* argv[] )
     std::cout << "File looks fine.\n";
 
 
-    bool in_read_sec = true;
-    // Report unread parts of the file
-    for ( size_t i = 0; i < input.m_read.size(); ++i )
-    {
-        bool read = input.m_read[ i ];
+    auto begin = input.m_read.begin();
+    auto end = input.m_read.end();
+    auto it = begin;
 
-        if ( in_read_sec )
+    while ( true )
+    {
+        auto unread_begin = std::find( it, end, false );
+        if ( unread_begin == end )
         {
-            if ( ! read )
-            {
-                std::cout << "Unread [ " << i << ", ";
-                in_read_sec = false;
-            }
+            break;
         }
-        else
+
+        auto unread_end = std::find( unread_begin, end, true );
+        ASSERT( unread_end != end );
+        it = unread_end + 1;
+
+        auto size = unread_end - unread_begin;
+        if ( size < 32 && std::all_of( unread_begin, unread_end, []( auto x ) { return x == 0; } ) )
         {
-            if ( read )
-            {
-                std::cout << i << " )\n";
-                in_read_sec = true;
-            }
+            // Probably padding, TODO also verify `unread_end` is a section start and size < sec[-1].addr_align
+            continue;
         }
+
+        std::cout << "Unread [ " << unread_begin - begin << ", " << unread_end - begin << " )\n";
     }
 
     return 0;
