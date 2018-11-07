@@ -48,7 +48,7 @@ ELF_File::ELF_File( std::string_view file_name, std::vector< unsigned char > &&c
     ASSERT( U8At( 4 ) == 2 ); // 64-bit
     ASSERT( U8At( 5 ) == 1 ); // Little-Endian
     ASSERT( U8At( 6 ) == 1 ); // ELF version 1
-    ASSERT( U8At( 7 ) == 0 ); // Not sure why this is 0
+    ASSERT( U8At( 7 ) == 0 || U8At( 7 ) == 3 ); // Not sure why this is 0
     ASSERT( U8At( 8 ) == 0 ); // Unused
 
     for ( int i = 9; i <= 15; ++i )
