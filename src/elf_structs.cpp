@@ -1,5 +1,24 @@
 #include "elf_structs.hpp"
 
+std::string escape( const std::string &s )
+{
+    std::string res;
+
+    for ( char c : s )
+    {
+        switch ( c )
+        {
+        case '<': res += "&lt;"; break;
+        case '>': res += "&gt;"; break;
+        case '&': res += "&amp;"; break;
+        case '"': res += "&quot;"; break;
+        default: res += c;
+        }
+    }
+
+    return res;
+}
+
 static void DumpBinaryData( std::string_view s )
 {
     if ( s.size() == 0 )
@@ -8,7 +27,7 @@ static void DumpBinaryData( std::string_view s )
     }
 
     const int indent = 4;
-    std::cout << "In Binary:\n";
+    std::cout << "<pre style=\"padding-left: 100px;\">";
     for ( uint64_t i = 0; i < s.size(); i += 20 )
     {
         std::stringstream render_print;
@@ -24,7 +43,14 @@ static void DumpBinaryData( std::string_view s )
             };
 
             uint8_t c = s[ i + j ];
-            render_print << ( isprint( c ) ? (char)c : '.' );
+            if ( isprint( c ) )
+            {
+                render_print << escape( std::string( 1, c ) );
+            }
+            else
+            {
+                render_print << '.';
+            }
             render_hex << " " << hex( c / 16 ) << hex( c % 16 );
         }
         for ( ; j < 20 ; ++j )
@@ -34,6 +60,7 @@ static void DumpBinaryData( std::string_view s )
 
         std::cout << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
     }
+    std::cout << "</pre>";
 }
 
 ELF_File::ELF_File( InputBuffer &input_ )
@@ -64,7 +91,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( input.U64At( 0x20 ) == 0 ); // Program header offset
 
     section_header_offset = input.U64At( 0x28 );
-    std::cout << "Section header offset = " << section_header_offset << "\n";
+    std::cout << "Section header offset = " << section_header_offset << "<br>\n";
 
     ASSERT( input.U32At( 0x30 ) == 0 ); // Flags
 
@@ -73,13 +100,13 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( input.U16At( 0x38 ) == 0 ); // program header num entries
 
     section_header_entry_size = input.U16At( 0x3A );
-    std::cout << "Section header entry size = " << section_header_entry_size << "\n";
+    std::cout << "Section header entry size = " << section_header_entry_size << "<br>\n";
 
     section_header_num_entries = input.U16At( 0x3C );
-    std::cout << "Section header num entries = " << section_header_num_entries << "\n";
+    std::cout << "Section header num entries = " << section_header_num_entries << "<br>\n";
 
     section_names_header_index = input.U16At( 0x3E );
-    std::cout << "Section names header index = " << section_names_header_index << "\n";
+    std::cout << "Section names header index = " << section_names_header_index << "<br>\n";
 
 
     // Extract section offsets first
@@ -95,13 +122,12 @@ ELF_File::ELF_File( InputBuffer &input_ )
     {
         std::cout << "  " << o << ",";
     }
-    std::cout << "\n";
+    std::cout << "<br>\n";
 
 
     // TODO make this a member var
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
     uint64_t shstrtab_offset = input.U64At( shstrtab_header_offset + 0x18 );
-    std::cout << "Initializing shstrtab\n";
     shstrtab = StringTable( *this, shstrtab_offset, input.U64At( shstrtab_header_offset + 0x20 ) );
 
     std::optional< SectionHeader > symtab_header;
@@ -159,6 +185,8 @@ ELF_File::ELF_File( InputBuffer &input_ )
             ASSERT( sh.m_ent_size == 24 );
             ASSERT( sh.m_size % 24 == 0 );
 
+            std::cout << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+
             for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
             {
                 uint64_t ent_offset = sh.m_offset + 24 * i;
@@ -168,23 +196,33 @@ ELF_File::ELF_File( InputBuffer &input_ )
                 uint32_t type   = input.U32At( ent_offset + 0x0c );
                 int64_t addend  = input.U64At( ent_offset + 0x10 );
 
-                std::cout << "RelocationEntry[ " << i << " ]:\n";
-                std::cout << "  - offset = " << offset << "\n";
-                std::cout << "  - sym = " << sym << "\n";
-                std::cout << "  - type = " << type << "\n";
-                std::cout << "  - addend = " << addend << "\n";
+                std::cout << "<tr>"
+                          << "<td>" << i << "</td>"
+                          << "<td>" << offset << "</td>"
+                          << "<td>" << sym << "</td>"
+                          << "<td>" << type << "</td>"
+                          << "<td>" << addend << "</td>"
+                          << "</tr>";
             }
+            std::cout << "</table>";
         }
 
         if ( sh.m_type == SectionType::StringTable )
         {
-            std::cout << "Dumping StringTable:\n";
+            std::cout << "<pre>";
             for ( auto i = begin; i < end; ++i )
             {
                 char c = (char)input.U8At( i );
-                std::cout << ( isprint( c ) ? c : '.' );
+                if ( isprint( c ) )
+                {
+                    std::cout << escape( std::string( 1, c ) );
+                }
+                else
+                {
+                    std::cout << '.';
+                }
             }
-            std::cout << "\n";
+            std::cout << "</pre>";
         }
 
         if ( sh.m_name == ".symtab" )
@@ -194,7 +232,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
         if ( sh.m_name == ".strtab" )
         {
-            std::cout << "Initializing strtab\n";
             strtab = StringTable( *this, sh.m_offset, sh.m_size );
         }
 
@@ -212,7 +249,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( symtab_header->m_ent_size == 24 );
     uint64_t symtab_offset = symtab_header->m_offset;
     uint64_t symtab_elem_cnt = symtab_header->m_size / 24;
-    std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
     ASSERT( symtab_elem_cnt != 0 );
 
     for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
