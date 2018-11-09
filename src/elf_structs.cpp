@@ -1,6 +1,6 @@
 #include "elf_structs.hpp"
 
-std::string escape( const std::string &s )
+static std::string escape( const std::string &s )
 {
     std::string res;
 
@@ -140,92 +140,130 @@ ELF_File::ELF_File( InputBuffer &input_ )
     }
 
     std::cout << "Section headers:<br>";
+    std::cout << "<table style=\"word-break: break-all;\">";
+    std::cout << "<tr>"
+              << "<th>Section Header</th>"
+              << "<th width=\"200\">Name</th>"
+              << "<th>Type</th>"
+              << "<th>Attrs</th>"
+              << "<th>Address</th>"
+              << "<th>Offset</th>"
+              << "<th>Size</th>"
+              << "<th>Asso Idx</th>"
+              << "<th>Info</th>"
+              << "<th>Addr Align</th>"
+              << "<th>Ent Size</th>"
+              << "</tr>";
+
     for ( size_t i = 0; i < section_headers.size(); ++i )
     {
         const SectionHeader &sh = section_headers[ i ];
-        std::cout << "<br>- SectionHeader[ " << i << " ]" << std::endl;
-        sh.Dump();
 
-        uint64_t begin = sh.m_offset;
-        uint64_t end = begin + sh.m_size;
-
-        if ( sh.m_type == SectionType::Group )
+        if ( i == 0 )
         {
-            DumpGroupSection( sh.m_offset, sh.m_size );
+            continue;
         }
 
-        if ( sh.m_type == SectionType::ProgramData )
-        {
-            if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
-            {
-                for ( auto i = begin; i < end; ++i )
-                {
-                    // Read by external prog, mark them here
-                    (void)input.U8At( i );
-                }
+        std::cout << "<tr>"
+                  << "<td>" << i << "</td>"
+                  << "<td>" << escape( sh.m_name ) << "</td>"
+                  << "<td>" << sh.m_type << "</td>"
+                  << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
+                  << "<td>" << sh.m_address << "</td>"
+                  << "<td>" << sh.m_offset << "</td>"
+                  << "<td>" << sh.m_size << "</td>"
+                  << "<td>" << sh.m_asso_idx << "</td>"
+                  << "<td>" << sh.m_info << "</td>"
+                  << "<td>" << sh.m_addr_align << "</td>"
+                  << "<td>" << sh.m_ent_size << "</td>"
+                  << "</tr>";
+    }
+    std::cout << "</table>";
 
-                std::stringstream cmd;
-                cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
-                std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
-                std::cout << "<pre>" << std::endl;
-                system( cmd.str().c_str() ); // TODO capture outout
-                std::cout << "</pre>" << std::endl;
-            }
-            else
-            {
-                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
-            }
-        }
+    for ( size_t i = 0; i < section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = section_headers[ i ];
 
-        if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
-        {
-            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
-        }
+        // uint64_t begin = sh.m_offset;
+        // uint64_t end = begin + sh.m_size;
 
-        if ( sh.m_type == SectionType::RelocationEntries )
-        {
-            ASSERT( sh.m_ent_size == 24 );
-            ASSERT( sh.m_size % 24 == 0 );
+        // if ( sh.m_type == SectionType::Group )
+        // {
+        //     DumpGroupSection( sh.m_offset, sh.m_size );
+        // }
 
-            std::cout << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+        // if ( sh.m_type == SectionType::ProgramData )
+        // {
+        //     if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
+        //     {
+        //         for ( auto i = begin; i < end; ++i )
+        //         {
+        //             // Read by external prog, mark them here
+        //             (void)input.U8At( i );
+        //         }
 
-            for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
-            {
-                uint64_t ent_offset = sh.m_offset + 24 * i;
+        //         std::stringstream cmd;
+        //         cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
+        //         std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
+        //         std::cout << "<pre>" << std::endl;
+        //         system( cmd.str().c_str() ); // TODO capture outout
+        //         std::cout << "</pre>" << std::endl;
+        //     }
+        //     else
+        //     {
+        //         DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
+        //     }
+        // }
 
-                uint64_t offset = input.U64At( ent_offset + 0x00 );
-                uint32_t sym    = input.U32At( ent_offset + 0x08 );
-                uint32_t type   = input.U32At( ent_offset + 0x0c );
-                int64_t addend  = input.U64At( ent_offset + 0x10 );
+        // if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
+        // {
+        //     DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
+        // }
 
-                std::cout << "<tr>"
-                          << "<td>" << i << "</td>"
-                          << "<td>" << offset << "</td>"
-                          << "<td>" << sym << "</td>"
-                          << "<td>" << type << "</td>"
-                          << "<td>" << addend << "</td>"
-                          << "</tr>";
-            }
-            std::cout << "</table>";
-        }
+        // if ( sh.m_type == SectionType::RelocationEntries )
+        // {
+        //     ASSERT( sh.m_ent_size == 24 );
+        //     ASSERT( sh.m_size % 24 == 0 );
 
-        if ( sh.m_type == SectionType::StringTable )
-        {
-            std::cout << "<pre>";
-            for ( auto i = begin; i < end; ++i )
-            {
-                char c = (char)input.U8At( i );
-                if ( isprint( c ) )
-                {
-                    std::cout << escape( std::string( 1, c ) );
-                }
-                else
-                {
-                    std::cout << '.';
-                }
-            }
-            std::cout << "</pre>";
-        }
+        //     std::cout << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+
+        //     for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
+        //     {
+        //         uint64_t ent_offset = sh.m_offset + 24 * i;
+
+        //         uint64_t offset = input.U64At( ent_offset + 0x00 );
+        //         uint32_t sym    = input.U32At( ent_offset + 0x08 );
+        //         uint32_t type   = input.U32At( ent_offset + 0x0c );
+        //         int64_t addend  = input.U64At( ent_offset + 0x10 );
+
+        //         std::cout << "<tr>"
+        //                   << "<td>" << i << "</td>"
+        //                   << "<td>" << offset << "</td>"
+        //                   << "<td>" << sym << "</td>"
+        //                   << "<td>" << type << "</td>"
+        //                   << "<td>" << addend << "</td>"
+        //                   << "</tr>";
+        //     }
+        //     std::cout << "</table>";
+        // }
+
+        // if ( sh.m_type == SectionType::StringTable )
+        // {
+        //     std::cout << "<pre>";
+        //     for ( auto i = begin; i < end; ++i )
+        //     {
+        //         char c = (char)input.U8At( i );
+        //         if ( isprint( c ) )
+        //         {
+        //             std::cout << escape( std::string( 1, c ) );
+        //         }
+        //         else
+        //         {
+        //             std::cout << '.';
+        //         }
+        //     }
+        //     std::cout << "</pre>";
+        // }
 
         if ( sh.m_name == ".symtab" )
         {
@@ -237,12 +275,12 @@ ELF_File::ELF_File( InputBuffer &input_ )
             strtab = StringTable( *this, sh.m_offset, sh.m_size );
         }
 
-        Section &sec = m_sections.emplace_back();
-        sec.m_name = sh.m_name;
-        if ( sh.m_type == SectionType::StringTable )
-        {
-            sec.m_var.emplace< StringTableSection >();
-        }
+        // Section &sec = m_sections.emplace_back();
+        // sec.m_name = sh.m_name;
+        // if ( sh.m_type == SectionType::StringTable )
+        // {
+        //     sec.m_var.emplace< StringTableSection >();
+        // }
     }
 
 
@@ -291,27 +329,6 @@ SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
     m_info       = ctx.input.U32At( offset + 0x2c );
     m_addr_align = ctx.input.U64At( offset + 0x30 );
     m_ent_size   = ctx.input.U64At( offset + 0x38 );
-}
-
-void SectionHeader::Dump() const
-{
-    std::cout << "  - name      = " << m_name << "<br>";
-    std::cout << "  - type      = " << m_type << "<br>";
-    if ( m_attrs.m_val )
-        std::cout << "  - attrs     = " << to_string( m_attrs ) << "<br>";
-    if ( m_address )
-        std::cout << "  - address   = " << m_address << "<br>";
-    if ( m_offset )
-        std::cout << "  - offset    = " << m_offset << "<br>";
-    std::cout << "  - size  = " << m_size << "<br>";
-    if ( m_asso_idx )
-        std::cout << "  - asso idx  = " << m_asso_idx << "<br>";
-    if ( m_info )
-        std::cout << "  - info      = " << m_info << "<br>";
-    if ( m_addr_align )
-        std::cout << "  - addralign = " << m_addr_align << "<br>";
-    if ( m_ent_size )
-        std::cout << "  - entsize   = " << m_ent_size << "<br>";
 }
 
 Symbol::Symbol( const ELF_File &ctx, uint64_t offset )

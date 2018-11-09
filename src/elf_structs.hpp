@@ -105,7 +105,6 @@ struct Symbol
 struct SectionHeader
 {
     SectionHeader( const ELF_File &ctx, uint64_t header_offset );
-    void Dump() const;
 
     std::string m_name;
     SectionType m_type;
