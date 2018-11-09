@@ -139,11 +139,11 @@ ELF_File::ELF_File( InputBuffer &input_ )
         section_headers.emplace_back( *this, section_header_offset + section_header_entry_size * i );
     }
 
-    std::cout << "Section headers:\n";
+    std::cout << "Section headers:<br>";
     for ( size_t i = 0; i < section_headers.size(); ++i )
     {
         const SectionHeader &sh = section_headers[ i ];
-        std::cout << "\n- SectionHeader[ " << i << " ]" << std::endl;
+        std::cout << "<br>- SectionHeader[ " << i << " ]" << std::endl;
         sh.Dump();
 
         uint64_t begin = sh.m_offset;
@@ -167,7 +167,9 @@ ELF_File::ELF_File( InputBuffer &input_ )
                 std::stringstream cmd;
                 cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
                 std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
-                system( cmd.str().c_str() );
+                std::cout << "<pre>" << std::endl;
+                system( cmd.str().c_str() ); // TODO capture outout
+                std::cout << "</pre>" << std::endl;
             }
             else
             {
@@ -254,7 +256,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
     for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
     {
         Symbol s( *this, symtab_offset + 24 * i );
-        std::cout << "Symbol[ " << i << " ]\n";
+        std::cout << "Symbol[ " << i << " ]<br>";
         s.Dump();
     }
 }
@@ -265,15 +267,15 @@ void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const
 
     ASSERT( input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
 
-    std::cout << "    Dumping GROUP section at " << offset << " with size " << size << "\n";
-    std::cout << "    - flags: GRP_COMDAT\n";
+    std::cout << "    Dumping GROUP section at " << offset << " with size " << size << "<br>";
+    std::cout << "    - flags: GRP_COMDAT<br>";
 
     uint64_t it = offset + 4;
     uint64_t end = offset + size;
 
     for ( ; it != end; it += 4 )
     {
-        std::cout << "    - section_header_idx : " << input.U32At( it ) << "\n";
+        std::cout << "    - section_header_idx : " << input.U32At( it ) << "<br>";
     }
 }
 
@@ -293,23 +295,23 @@ SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
 
 void SectionHeader::Dump() const
 {
-    std::cout << "  - name      = " << m_name << "\n";
-    std::cout << "  - type      = " << m_type << "\n";
+    std::cout << "  - name      = " << m_name << "<br>";
+    std::cout << "  - type      = " << m_type << "<br>";
     if ( m_attrs.m_val )
-        std::cout << "  - attrs     = " << to_string( m_attrs ) << "\n";
+        std::cout << "  - attrs     = " << to_string( m_attrs ) << "<br>";
     if ( m_address )
-        std::cout << "  - address   = " << m_address << "\n";
+        std::cout << "  - address   = " << m_address << "<br>";
     if ( m_offset )
-        std::cout << "  - offset    = " << m_offset << "\n";
-    std::cout << "  - size  = " << m_size << "\n";
+        std::cout << "  - offset    = " << m_offset << "<br>";
+    std::cout << "  - size  = " << m_size << "<br>";
     if ( m_asso_idx )
-        std::cout << "  - asso idx  = " << m_asso_idx << "\n";
+        std::cout << "  - asso idx  = " << m_asso_idx << "<br>";
     if ( m_info )
-        std::cout << "  - info      = " << m_info << "\n";
+        std::cout << "  - info      = " << m_info << "<br>";
     if ( m_addr_align )
-        std::cout << "  - addralign = " << m_addr_align << "\n";
+        std::cout << "  - addralign = " << m_addr_align << "<br>";
     if ( m_ent_size )
-        std::cout << "  - entsize   = " << m_ent_size << "\n";
+        std::cout << "  - entsize   = " << m_ent_size << "<br>";
 }
 
 Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
@@ -326,13 +328,13 @@ Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
 
 void Symbol::Dump() const
 {
-    std::cout << "  - name = " << m_name << "\n";
-    std::cout << "  - bind = " << m_binding << "\n";
-    std::cout << "  - type = " << m_type << "\n";
-    std::cout << "  - visibility = " << m_visibility << "\n";
-    std::cout << "  - section idx = " << m_section_idx << "\n";
-    std::cout << "  - value = " << m_value << "\n";
-    std::cout << "  - size = " << m_size << "\n";
+    std::cout << "  - name = " << m_name << "<br>";
+    std::cout << "  - bind = " << m_binding << "<br>";
+    std::cout << "  - type = " << m_type << "<br>";
+    std::cout << "  - visibility = " << m_visibility << "<br>";
+    std::cout << "  - section idx = " << m_section_idx << "<br>";
+    std::cout << "  - value = " << m_value << "<br>";
+    std::cout << "  - size = " << m_size << "<br>";
 }
 
 StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size )
