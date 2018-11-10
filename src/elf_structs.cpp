@@ -166,7 +166,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
         std::cout << "<tr>"
                   << "<td>" << i << "</td>"
-                  << "<td>" << escape( sh.m_name ) << "</td>"
+                  << "<td><a name=\"section-" << i << "\">" << escape( sh.m_name ) << "</a></td>"
                   << "<td>" << sh.m_type << "</td>"
                   << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
                   << "<td>" << sh.m_address << "</td>"
