@@ -140,7 +140,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
     }
 
     std::cout << "Section headers:<br>";
-    std::cout << "<table style=\"word-break: break-all;\">";
+    std::cout << "<table border=\"1\" cellspacing=\"0\" style=\"word-break: break-all;\">";
     std::cout << "<tr>"
               << "<th>Section Header</th>"
               << "<th width=\"200\">Name</th>"
