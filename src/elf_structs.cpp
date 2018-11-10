@@ -66,6 +66,15 @@ static void DumpBinaryData( std::string_view s )
 ELF_File::ELF_File( InputBuffer &input_ )
     : input( input_ )
 {
+    std::cout << R"(<!doctype html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
+  </head>
+  <body>
+)";
+
     ASSERT( input.U8At( 0 ) == 0x7F );
     ASSERT( input.U8At( 1 ) == 'E' );
     ASSERT( input.U8At( 2 ) == 'L' );
@@ -140,8 +149,8 @@ ELF_File::ELF_File( InputBuffer &input_ )
     }
 
     std::cout << "Section headers:<br>";
-    std::cout << "<table border=\"1\" cellspacing=\"0\" style=\"word-break: break-all;\">";
-    std::cout << "<tr>"
+    std::cout << "<table id=\"table-section-headers\" border=\"1\" cellspacing=\"0\" style=\"word-break: break-all;\">";
+    std::cout << "<thead><tr style=\"background-color: #eee;\">"
               << "<th>Section Header</th>"
               << "<th width=\"200\">Name</th>"
               << "<th>Type</th>"
@@ -153,7 +162,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
               << "<th>Info</th>"
               << "<th>Addr Align</th>"
               << "<th>Ent Size</th>"
-              << "</tr>";
+              << "</tr></thead><tbody>";
 
     for ( size_t i = 0; i < section_headers.size(); ++i )
     {
@@ -164,6 +173,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
             continue;
         }
 
+        // TODO adjust anchor offset: https://stackoverflow.com/questions/10732690/offsetting-an-html-anchor-to-adjust-for-fixed-header
         std::cout << "<tr>"
                   << "<td>" << i << "</td>"
                   << "<td><a name=\"section-" << i << "\">" << escape( sh.m_name ) << "</a></td>"
@@ -178,7 +188,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
                   << "<td>" << sh.m_ent_size << "</td>"
                   << "</tr>";
     }
-    std::cout << "</table>";
+    std::cout << "</tbody></table>";
 
     for ( size_t i = 0; i < section_headers.size(); ++i )
     {

@@ -66,5 +66,14 @@ int main( int argc, char* argv[] )
         std::cout << "Unread [ " << unread_begin - begin << ", " << unread_end - begin << " )\n";
     }
 
+    std::cout << R"(
+<script>
+  console.log( 'Enabling float Thead for: ', $('#table-section-headers') );
+  $('#table-section-headers').floatThead({
+position: 'fixed'
+});
+</script>
+</body></html>)";
+
     return 0;
 }
