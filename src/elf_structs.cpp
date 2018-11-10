@@ -175,8 +175,8 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
         // TODO adjust anchor offset: https://stackoverflow.com/questions/10732690/offsetting-an-html-anchor-to-adjust-for-fixed-header
         std::cout << "<tr>"
-                  << "<td>" << i << "</td>"
-                  << "<td><a name=\"section-" << i << "\">" << escape( sh.m_name ) << "</a></td>"
+                  << "<td><a name=\"section-" << i << "\" href=\"#section-" << i << "\">" << i << "</a></td>"
+                  << "<td>" << escape( sh.m_name ) << "</td>"
                   << "<td>" << sh.m_type << "</td>"
                   << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
                   << "<td>" << sh.m_address << "</td>"
