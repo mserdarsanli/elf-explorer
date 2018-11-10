@@ -71,6 +71,27 @@ ELF_File::ELF_File( InputBuffer &input_ )
   <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
+    <style>
+      :root {
+        --section-header-table-thead-height: 2em;
+      }
+
+      #section-headers-header-row {
+        height: var( --section-header-table-thead-height );
+        background-color: #eee;
+      }
+
+      td {
+        vertical-align: top;
+      }
+
+      .section_header_anchor {
+        display: block;
+        position: relative;
+        top: calc( var( --section-header-table-thead-height ) * -1 );
+        visibility: hidden;
+      }
+    </style>
   </head>
   <body>
 )";
@@ -150,7 +171,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
     std::cout << "Section headers:<br>";
     std::cout << "<table id=\"table-section-headers\" border=\"1\" cellspacing=\"0\" style=\"word-break: break-all;\">";
-    std::cout << "<thead><tr style=\"background-color: #eee;\">"
+    std::cout << "<thead><tr id=\"section-headers-header-row\">"
               << "<th>Section Header</th>"
               << "<th width=\"200\">Name</th>"
               << "<th>Type</th>"
@@ -173,9 +194,8 @@ ELF_File::ELF_File( InputBuffer &input_ )
             continue;
         }
 
-        // TODO adjust anchor offset: https://stackoverflow.com/questions/10732690/offsetting-an-html-anchor-to-adjust-for-fixed-header
         std::cout << "<tr>"
-                  << "<td><a name=\"section-" << i << "\" href=\"#section-" << i << "\">" << i << "</a></td>"
+                  << "<td><a class=\"section_header_anchor\" name=\"section-" << i << "\"></a><a href=\"#section-" << i << "\">" << i << "</a></td>"
                   << "<td>" << escape( sh.m_name ) << "</td>"
                   << "<td>" << sh.m_type << "</td>"
                   << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
