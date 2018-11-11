@@ -140,8 +140,6 @@ struct ELF_File
 
     void render_html_into( std::ostream & );
 
-    void DumpGroupSection( uint64_t offset, uint64_t size ) const;
-
     uint64_t section_header_offset;
     uint16_t section_header_entry_size;
     uint16_t section_header_num_entries;

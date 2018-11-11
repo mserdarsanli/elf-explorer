@@ -152,11 +152,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
         // uint64_t begin = sh.m_offset;
         // uint64_t end = begin + sh.m_size;
 
-        // if ( sh.m_type == SectionType::Group )
-        // {
-        //     DumpGroupSection( sh.m_offset, sh.m_size );
-        // }
-
         // if ( sh.m_type == SectionType::ProgramData )
         // {
         //     if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
@@ -266,21 +261,25 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
 void ELF_File::render_html_into( std::ostream &html_out )
 {
-    html_out << R"(Section headers:<br>
+    html_out << R"(
+Section headers:<br>
 <table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
-<thead><tr id="section-headers-header-row">
-<th>Section Header</th>
-<th width="200">Name</th>
-<th>Type</th>
-<th>Attrs</th>
-<th>Address</th>
-<th>Offset</th>
-<th>Size</th>
-<th>Asso Idx</th>
-<th>Info</th>
-<th>Addr Align</th>
-<th>Ent Size</th>
-</tr></thead><tbody>
+  <thead>
+    <tr id="section-headers-header-row">
+      <th>Section Header</th>
+      <th width="200">Name</th>
+      <th>Type</th>
+      <th>Attrs</th>
+      <th>Address</th>
+      <th>Offset</th>
+      <th>Size</th>
+      <th>Asso Idx</th>
+      <th>Info</th>
+      <th>Addr Align</th>
+      <th>Ent Size</th>
+    </tr>
+  </thead>
+  <tbody>
 )";
 
     for ( size_t i = 0; i < m_section_headers.size(); ++i )
@@ -297,9 +296,18 @@ void ELF_File::render_html_into( std::ostream &html_out )
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
                  << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
-                 << "<td>" << sh.m_address << "</td>"
-                 << "<td>" << sh.m_offset << "</td>"
-                 << "<td>" << sh.m_size << "</td>"
+                 << "<td>" << sh.m_address << "</td>";
+
+        if ( sh.m_type == SectionType::Group )
+        {
+            html_out << "<td><a href=\"#group-section-at-" << sh.m_offset << "\">" << sh.m_offset << "</a></td>";
+        }
+        else
+        {
+            html_out << "<td>" << sh.m_offset << "</td>";
+        }
+
+        html_out << "<td>" << sh.m_size << "</td>"
                  << "<td>" << sh.m_asso_idx << "</td>"
                  << "<td>" << sh.m_info << "</td>"
                  << "<td>" << sh.m_addr_align << "</td>"
@@ -307,24 +315,37 @@ void ELF_File::render_html_into( std::ostream &html_out )
                  << "</tr>";
     }
     html_out << "</tbody></table>";
-}
 
-void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const
-{
-    ASSERT( size % 4 == 0 );
 
-    ASSERT( input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
-
-    std::cout << "    Dumping GROUP section at " << offset << " with size " << size << "<br>";
-    std::cout << "    - flags: GRP_COMDAT<br>";
-
-    uint64_t it = offset + 4;
-    uint64_t end = offset + size;
-
-    for ( ; it != end; it += 4 )
+    auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
     {
-        std::cout << "    - section_header_idx : " << input.U32At( it ) << "<br>";
+        ASSERT( size % 4 == 0 );
+
+        ASSERT( this->input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
+
+        html_out << "<a name=\"group-section-at-" << offset << "\"></a>GROUP section at " << offset << " with size " << size << "<br>"
+                 << "    - flags: GRP_COMDAT<br>";
+
+        uint64_t it = offset + 4;
+        uint64_t end = offset + size;
+
+        for ( ; it != end; it += 4 )
+        {
+            html_out << "    - section_header_idx : " << this->input.U32At( it ) << "<br>";
+        }
+    };
+
+    for ( size_t i = 0; i < m_section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = m_section_headers[ i ];
+
+        if ( sh.m_type == SectionType::Group )
+        {
+            DumpGroupSection( sh.m_offset, sh.m_size );
+        }
     }
+
+
 }
 
 SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
