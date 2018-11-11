@@ -1,0 +1,31 @@
+
+cc = g++
+cppflags = -std=c++17 -Wall -Wpedantic -fPIC -O3 -I out/gen
+extra_cppflags =
+linkflags =
+extra_linkflags =
+
+rule compile
+    depfile = $out.d
+    command = $cc -MMD -MF $out.d $cppflags $extra_cppflags -c $in -o $out
+
+rule link
+    command = $cc $linkflags $extra_linkflags $in -o $out
+
+
+build out/src/prog1.o: compile src/prog1.cpp
+build out/src/prog2.o: compile src/prog2.cpp
+
+build out/src/prog1: link out/src/prog1.o
+build out/src/prog2: link out/src/prog2.o
+
+rule run_python
+    command = python3 $in > $out
+
+build out/gen/enums.hpp: run_python src/gen_enums.py
+
+build out/src/elf_structs.o: compile src/elf_structs.cpp
+build out/src/input_buffer.o: compile src/input_buffer.cpp
+build out/src/symbol_renamer.o: compile src/symbol_renamer.cpp
+
+build out/symbol_renamer: link out/src/elf_structs.o out/src/input_buffer.o out/src/symbol_renamer.o
