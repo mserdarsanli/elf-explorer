@@ -121,8 +121,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( input.U64At( 0x20 ) == 0 ); // Program header offset
 
     section_header_offset = input.U64At( 0x28 );
-    std::cout << "Section header offset = " << section_header_offset << "<br>\n";
-
     ASSERT( input.U32At( 0x30 ) == 0 ); // Flags
 
     ASSERT( input.U16At( 0x34 ) == 64 ); // ELF Header size
@@ -130,29 +128,8 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( input.U16At( 0x38 ) == 0 ); // program header num entries
 
     section_header_entry_size = input.U16At( 0x3A );
-    std::cout << "Section header entry size = " << section_header_entry_size << "<br>\n";
-
     section_header_num_entries = input.U16At( 0x3C );
-    std::cout << "Section header num entries = " << section_header_num_entries << "<br>\n";
-
     section_names_header_index = input.U16At( 0x3E );
-    std::cout << "Section names header index = " << section_names_header_index << "<br>\n";
-
-
-    // Extract section offsets first
-    for ( int i = 0; i < section_header_num_entries; ++i )
-    {
-        uint64_t header_offset = section_header_offset + section_header_entry_size * i;
-        section_offsets.push_back( input.U64At( header_offset + 0x18 ) );
-    }
-    std::sort( section_offsets.begin(), section_offsets.end() );
-
-    std::cout << "Section offsets:";
-    for ( uint64_t o : section_offsets )
-    {
-        std::cout << "  " << o << ",";
-    }
-    std::cout << "<br>\n";
 
 
     // TODO make this a member var
@@ -162,57 +139,15 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
     std::optional< SectionHeader > symtab_header;
 
-    std::vector< SectionHeader > section_headers;
-    section_headers.reserve( section_header_num_entries );
+    m_section_headers.reserve( section_header_num_entries );
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
-        section_headers.emplace_back( *this, section_header_offset + section_header_entry_size * i );
+        m_section_headers.emplace_back( *this, section_header_offset + section_header_entry_size * i );
     }
 
-    std::cout << "Section headers:<br>";
-    std::cout << "<table id=\"table-section-headers\" border=\"1\" cellspacing=\"0\" style=\"word-break: break-all;\">";
-    std::cout << "<thead><tr id=\"section-headers-header-row\">"
-              << "<th>Section Header</th>"
-              << "<th width=\"200\">Name</th>"
-              << "<th>Type</th>"
-              << "<th>Attrs</th>"
-              << "<th>Address</th>"
-              << "<th>Offset</th>"
-              << "<th>Size</th>"
-              << "<th>Asso Idx</th>"
-              << "<th>Info</th>"
-              << "<th>Addr Align</th>"
-              << "<th>Ent Size</th>"
-              << "</tr></thead><tbody>";
-
-    for ( size_t i = 0; i < section_headers.size(); ++i )
+    for ( size_t i = 0; i < m_section_headers.size(); ++i )
     {
-        const SectionHeader &sh = section_headers[ i ];
-
-        if ( i == 0 )
-        {
-            continue;
-        }
-
-        std::cout << "<tr>"
-                  << "<td><a class=\"section_header_anchor\" name=\"section-" << i << "\"></a><a href=\"#section-" << i << "\">" << i << "</a></td>"
-                  << "<td>" << escape( sh.m_name ) << "</td>"
-                  << "<td>" << sh.m_type << "</td>"
-                  << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
-                  << "<td>" << sh.m_address << "</td>"
-                  << "<td>" << sh.m_offset << "</td>"
-                  << "<td>" << sh.m_size << "</td>"
-                  << "<td>" << sh.m_asso_idx << "</td>"
-                  << "<td>" << sh.m_info << "</td>"
-                  << "<td>" << sh.m_addr_align << "</td>"
-                  << "<td>" << sh.m_ent_size << "</td>"
-                  << "</tr>";
-    }
-    std::cout << "</tbody></table>";
-
-    for ( size_t i = 0; i < section_headers.size(); ++i )
-    {
-        const SectionHeader &sh = section_headers[ i ];
+        const SectionHeader &sh = m_section_headers[ i ];
 
         // uint64_t begin = sh.m_offset;
         // uint64_t end = begin + sh.m_size;
@@ -327,6 +262,51 @@ ELF_File::ELF_File( InputBuffer &input_ )
         std::cout << "Symbol[ " << i << " ]<br>";
         s.Dump();
     }
+}
+
+void ELF_File::render_html_into( std::ostream &html_out )
+{
+    html_out << R"(Section headers:<br>
+<table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
+<thead><tr id="section-headers-header-row">
+<th>Section Header</th>
+<th width="200">Name</th>
+<th>Type</th>
+<th>Attrs</th>
+<th>Address</th>
+<th>Offset</th>
+<th>Size</th>
+<th>Asso Idx</th>
+<th>Info</th>
+<th>Addr Align</th>
+<th>Ent Size</th>
+</tr></thead><tbody>
+)";
+
+    for ( size_t i = 0; i < m_section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = m_section_headers[ i ];
+
+        if ( i == 0 )
+        {
+            continue;
+        }
+
+        html_out << "<tr>"
+                 << "<td><a class=\"section_header_anchor\" name=\"section-" << i << "\"></a><a href=\"#section-" << i << "\">" << i << "</a></td>"
+                 << "<td>" << escape( sh.m_name ) << "</td>"
+                 << "<td>" << sh.m_type << "</td>"
+                 << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
+                 << "<td>" << sh.m_address << "</td>"
+                 << "<td>" << sh.m_offset << "</td>"
+                 << "<td>" << sh.m_size << "</td>"
+                 << "<td>" << sh.m_asso_idx << "</td>"
+                 << "<td>" << sh.m_info << "</td>"
+                 << "<td>" << sh.m_addr_align << "</td>"
+                 << "<td>" << sh.m_ent_size << "</td>"
+                 << "</tr>";
+    }
+    html_out << "</tbody></table>";
 }
 
 void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const

@@ -138,6 +138,8 @@ struct ELF_File
 {
     ELF_File( InputBuffer & );
 
+    void render_html_into( std::ostream & );
+
     void DumpGroupSection( uint64_t offset, uint64_t size ) const;
 
     uint64_t section_header_offset;
@@ -145,12 +147,11 @@ struct ELF_File
     uint16_t section_header_num_entries;
     uint16_t section_names_header_index;
 
+    std::vector< SectionHeader > m_section_headers;
     std::vector< Section > m_sections;
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;
-
-    std::vector< uint64_t > section_offsets;
 
     InputBuffer &input;
 };
