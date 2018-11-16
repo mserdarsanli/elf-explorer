@@ -1,4 +1,5 @@
 #include "elf_structs.hpp"
+#include "wrap_nasm.h"
 
 static std::string escape( const std::string &s )
 {
@@ -151,29 +152,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
         // uint64_t begin = sh.m_offset;
         // uint64_t end = begin + sh.m_size;
-
-        // if ( sh.m_type == SectionType::ProgramData )
-        // {
-        //     if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
-        //     {
-        //         for ( auto i = begin; i < end; ++i )
-        //         {
-        //             // Read by external prog, mark them here
-        //             (void)input.U8At( i );
-        //         }
-
-        //         std::stringstream cmd;
-        //         cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
-        //         std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
-        //         std::cout << "<pre>" << std::endl;
-        //         system( cmd.str().c_str() ); // TODO capture outout
-        //         std::cout << "</pre>" << std::endl;
-        //     }
-        //     else
-        //     {
-        //         DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
-        //     }
-        // }
 
         // if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
         // {
@@ -343,6 +321,28 @@ Section headers:<br>
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
         }
+
+        if ( sh.m_type == SectionType::ProgramData )
+        {
+            if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
+            {
+                // std::stringstream cmd;
+                // cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
+                // std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
+                // std::cout << "<pre>" << std::endl;
+                // system( cmd.str().c_str() ); // TODO capture outout
+                // std::cout << "</pre>" << std::endl;
+
+
+                std::string_view exec = input.StringViewAt( sh.m_offset, sh.m_size );
+                DisasmExecutableSection( (const unsigned char *)exec.data(), exec.size() );
+            }
+            else
+            {
+                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
+            }
+        }
+
     }
 
 
