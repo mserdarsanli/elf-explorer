@@ -20,7 +20,7 @@ static std::string escape( const std::string &s )
     return res;
 }
 
-static void DumpBinaryData( std::string_view s )
+static void DumpBinaryData( std::string_view s, std::ostream &html_out )
 {
     if ( s.size() == 0 )
     {
@@ -28,7 +28,7 @@ static void DumpBinaryData( std::string_view s )
     }
 
     const int indent = 4;
-    std::cout << "<pre style=\"padding-left: 100px;\">";
+    html_out << "<pre style=\"padding-left: 100px;\">";
     for ( uint64_t i = 0; i < s.size(); i += 20 )
     {
         std::stringstream render_print;
@@ -59,44 +59,14 @@ static void DumpBinaryData( std::string_view s )
             render_print << " ";
         }
 
-        std::cout << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
+        html_out << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
     }
-    std::cout << "</pre>";
+    html_out << "</pre>";
 }
 
 ELF_File::ELF_File( InputBuffer &input_ )
     : input( input_ )
 {
-    std::cout << R"(<!doctype html>
-<html>
-  <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
-    <style>
-      :root {
-        --section-header-table-thead-height: 2em;
-      }
-
-      #section-headers-header-row {
-        height: var( --section-header-table-thead-height );
-        background-color: #eee;
-      }
-
-      td {
-        vertical-align: top;
-      }
-
-      .section_header_anchor {
-        display: block;
-        position: relative;
-        top: calc( var( --section-header-table-thead-height ) * -1 );
-        visibility: hidden;
-      }
-    </style>
-  </head>
-  <body>
-)";
-
     ASSERT( input.U8At( 0 ) == 0x7F );
     ASSERT( input.U8At( 1 ) == 'E' );
     ASSERT( input.U8At( 2 ) == 'L' );
@@ -137,8 +107,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
     uint64_t shstrtab_offset = input.U64At( shstrtab_header_offset + 0x18 );
     shstrtab = StringTable( *this, shstrtab_offset, input.U64At( shstrtab_header_offset + 0x20 ) );
-
-    std::optional< SectionHeader > symtab_header;
 
     m_section_headers.reserve( section_header_num_entries );
     for ( int i = 0; i < section_header_num_entries; ++i )
@@ -205,7 +173,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
         if ( sh.m_name == ".symtab" )
         {
-            symtab_header = sh;
+            m_symtab_header = sh;
         }
 
         if ( sh.m_name == ".strtab" )
@@ -223,22 +191,42 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
 
     ASSERT( strtab );
-    ASSERT( symtab_header );
-    ASSERT( symtab_header->m_ent_size == 24 );
-    uint64_t symtab_offset = symtab_header->m_offset;
-    uint64_t symtab_elem_cnt = symtab_header->m_size / 24;
-    ASSERT( symtab_elem_cnt != 0 );
-
-    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
-    {
-        Symbol s( *this, symtab_offset + 24 * i );
-        std::cout << "Symbol[ " << i << " ]<br>";
-        s.Dump();
-    }
+    ASSERT( m_symtab_header );
+    ASSERT( m_symtab_header->m_ent_size == 24 );
 }
 
 void ELF_File::render_html_into( std::ostream &html_out )
 {
+    html_out << R"(<!doctype html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
+    <style>
+      :root {
+        --section-header-table-thead-height: 2em;
+      }
+
+      #section-headers-header-row {
+        height: var( --section-header-table-thead-height );
+        background-color: #eee;
+      }
+
+      td {
+        vertical-align: top;
+      }
+
+      .section_header_anchor {
+        display: block;
+        position: relative;
+        top: calc( var( --section-header-table-thead-height ) * -1 );
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+)";
+
     html_out << R"(
 Section headers:<br>
 <table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
@@ -294,6 +282,21 @@ Section headers:<br>
     }
     html_out << "</tbody></table>";
 
+    uint64_t symtab_offset = m_symtab_header->m_offset;
+    uint64_t symtab_elem_cnt = m_symtab_header->m_size / 24;
+    ASSERT( symtab_elem_cnt != 0 );
+    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
+    {
+        Symbol s( *this, symtab_offset + 24 * i );
+        html_out << "Symbol[ " << i << " ]<br>";
+        html_out << "  - name = " << s.m_name << "<br>";
+        html_out << "  - bind = " << s.m_binding << "<br>";
+        html_out << "  - type = " << s.m_type << "<br>";
+        html_out << "  - visibility = " << s.m_visibility << "<br>";
+        html_out << "  - section idx = " << s.m_section_idx << "<br>";
+        html_out << "  - value = " << s.m_value << "<br>";
+        html_out << "  - size = " << s.m_size << "<br>";
+    }
 
     auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
     {
@@ -343,7 +346,7 @@ Section headers:<br>
             }
             else
             {
-                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
+                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
             }
         }
 
@@ -376,17 +379,6 @@ Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
     m_section_idx = ctx.input.U16At( offset + 6 );
     m_value = ctx.input.U64At( offset + 8 );
     m_size = ctx.input.U64At( offset + 16 );
-}
-
-void Symbol::Dump() const
-{
-    std::cout << "  - name = " << m_name << "<br>";
-    std::cout << "  - bind = " << m_binding << "<br>";
-    std::cout << "  - type = " << m_type << "<br>";
-    std::cout << "  - visibility = " << m_visibility << "<br>";
-    std::cout << "  - section idx = " << m_section_idx << "<br>";
-    std::cout << "  - value = " << m_value << "<br>";
-    std::cout << "  - size = " << m_size << "<br>";
 }
 
 StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size )

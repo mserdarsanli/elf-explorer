@@ -91,7 +91,6 @@ struct StringTable
 struct Symbol
 {
     Symbol( const ELF_File &ctx, uint64_t offset );
-    void Dump() const;
 
     std::string m_name;
     SymbolBinding m_binding;
@@ -145,6 +144,7 @@ struct ELF_File
     uint16_t section_header_num_entries;
     uint16_t section_names_header_index;
 
+    std::optional< SectionHeader > m_symtab_header; // TODO header_idx would be more useful
     std::vector< SectionHeader > m_section_headers;
     std::vector< Section > m_sections;
 
