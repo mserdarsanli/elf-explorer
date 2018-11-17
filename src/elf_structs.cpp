@@ -326,16 +326,20 @@ Section headers:<br>
         {
             if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
             {
-                // std::stringstream cmd;
-                // cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
-                // std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
-                // std::cout << "<pre>" << std::endl;
-                // system( cmd.str().c_str() ); // TODO capture outout
-                // std::cout << "</pre>" << std::endl;
+                std::stringstream disasm_out;
+
+                auto fp = []( const char *ins, void *data )
+                {
+                    *static_cast< std::stringstream* >( data ) << ins;
+                };
+
+                html_out << "Disassembling section of size = " << sh.m_size << "\n";
 
 
                 std::string_view exec = input.StringViewAt( sh.m_offset, sh.m_size );
-                DisasmExecutableSection( (const unsigned char *)exec.data(), exec.size() );
+                DisasmExecutableSection( (const unsigned char *)exec.data(), exec.size(), fp, static_cast< void* >( &disasm_out ) );
+
+                html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
             }
             else
             {
