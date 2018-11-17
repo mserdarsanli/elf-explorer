@@ -121,11 +121,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
         // uint64_t begin = sh.m_offset;
         // uint64_t end = begin + sh.m_size;
 
-        // if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
-        // {
-        //     DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
-        // }
-
         // if ( sh.m_type == SectionType::RelocationEntries )
         // {
         //     ASSERT( sh.m_ent_size == 24 );
@@ -323,6 +318,11 @@ Section headers:<br>
         if ( sh.m_type == SectionType::Group )
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
+        }
+
+        if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
+        {
+            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
         }
 
         if ( sh.m_type == SectionType::ProgramData )
