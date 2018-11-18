@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "elf_structs.hpp"
+#include "test_data.hpp" // This should go away when emcc can open any file TODO
 
 static std::vector< unsigned char > read_file( const char *file_name )
 {
@@ -27,7 +28,7 @@ static std::vector< unsigned char > read_file( const char *file_name )
 }
 
 
-int main( int argc, char* argv[] )
+int my_main( int argc, char* argv[] )
 {
     if ( argc != 2 )
     {
@@ -35,7 +36,17 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    InputBuffer input( argv[ 1 ], read_file( argv[ 1 ] ) );
+    std::vector< unsigned char > obj_file_contents;
+    if ( argv[ 1 ] == std::string_view( "--test-data" ) )
+    {
+        obj_file_contents.assign( out_src_prog1_o, out_src_prog1_o + out_src_prog1_o_len );
+    }
+    else
+    {
+        obj_file_contents = read_file( argv[ 1 ] );
+    }
+
+    InputBuffer input( argv[ 1 ], std::move( obj_file_contents ) ); // TODO first parameter can be removed
     ELF_File file( input );
 
     std::stringstream html_out;
@@ -83,3 +94,18 @@ position: 'fixed'
 
     return 0;
 }
+
+int main( int argc, char* argv[] )
+{
+    return my_main( argc, argv );
+}
+
+extern "C" {
+void run_example()
+{
+    char arg1[] = "foo";
+    char arg2[] = "--test-data";
+    char* args[3] = { arg1, arg2, nullptr };
+    my_main( 2, args );
+}
+} // extern "C"
