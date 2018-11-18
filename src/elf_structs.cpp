@@ -118,27 +118,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
-        // uint64_t begin = sh.m_offset;
-        // uint64_t end = begin + sh.m_size;
-
-        // if ( sh.m_type == SectionType::StringTable )
-        // {
-        //     std::cout << "<pre>";
-        //     for ( auto i = begin; i < end; ++i )
-        //     {
-        //         char c = (char)input.U8At( i );
-        //         if ( isprint( c ) )
-        //         {
-        //             std::cout << escape( std::string( 1, c ) );
-        //         }
-        //         else
-        //         {
-        //             std::cout << '.';
-        //         }
-        //     }
-        //     std::cout << "</pre>";
-        // }
-
         if ( sh.m_name == ".symtab" )
         {
             m_symtab_header = sh;
@@ -326,6 +305,11 @@ Section headers:<br>
             html_out << "</table>";
         }
 
+        if ( sh.m_type == SectionType::StringTable )
+        {
+            html_out << "String table at: " << sh.m_offset << "<br/>";
+            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+        }
 
         if ( sh.m_type == SectionType::ProgramData )
         {
