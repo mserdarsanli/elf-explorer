@@ -91,7 +91,6 @@ struct StringTable
 struct Symbol
 {
     Symbol( const ELF_File &ctx, uint64_t offset );
-    void Dump() const;
 
     std::string m_name;
     SymbolBinding m_binding;
@@ -105,7 +104,6 @@ struct Symbol
 struct SectionHeader
 {
     SectionHeader( const ELF_File &ctx, uint64_t header_offset );
-    void Dump() const;
 
     std::string m_name;
     SectionType m_type;
@@ -119,39 +117,22 @@ struct SectionHeader
     uint64_t m_ent_size;
 };
 
-// High-level structs
-
-struct StringTableSection
-{
-    std::string m_data;
-};
-
-struct Section
-{
-    std::string m_name;
-
-    std::variant< std::monostate // Unknown/Unset
-        , StringTableSection
-    > m_var;
-};
-
 struct ELF_File
 {
     ELF_File( InputBuffer & );
 
-    void DumpGroupSection( uint64_t offset, uint64_t size ) const;
+    void render_html_into( std::ostream & );
 
     uint64_t section_header_offset;
     uint16_t section_header_entry_size;
     uint16_t section_header_num_entries;
     uint16_t section_names_header_index;
 
-    std::vector< Section > m_sections;
+    std::optional< SectionHeader > m_symtab_header; // TODO header_idx would be more useful
+    std::vector< SectionHeader > m_section_headers;
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;
-
-    std::vector< uint64_t > section_offsets;
 
     InputBuffer &input;
 };

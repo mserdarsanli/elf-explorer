@@ -1,6 +1,26 @@
 #include "elf_structs.hpp"
+#include "wrap_nasm.h"
 
-static void DumpBinaryData( std::string_view s )
+static std::string escape( const std::string &s )
+{
+    std::string res;
+
+    for ( char c : s )
+    {
+        switch ( c )
+        {
+        case '<': res += "&lt;"; break;
+        case '>': res += "&gt;"; break;
+        case '&': res += "&amp;"; break;
+        case '"': res += "&quot;"; break;
+        default: res += c;
+        }
+    }
+
+    return res;
+}
+
+static void DumpBinaryData( std::string_view s, std::ostream &html_out )
 {
     if ( s.size() == 0 )
     {
@@ -8,7 +28,7 @@ static void DumpBinaryData( std::string_view s )
     }
 
     const int indent = 4;
-    std::cout << "In Binary:\n";
+    html_out << "<pre style=\"padding-left: 100px;\">";
     for ( uint64_t i = 0; i < s.size(); i += 20 )
     {
         std::stringstream render_print;
@@ -24,7 +44,14 @@ static void DumpBinaryData( std::string_view s )
             };
 
             uint8_t c = s[ i + j ];
-            render_print << ( isprint( c ) ? (char)c : '.' );
+            if ( isprint( c ) )
+            {
+                render_print << escape( std::string( 1, c ) );
+            }
+            else
+            {
+                render_print << '.';
+            }
             render_hex << " " << hex( c / 16 ) << hex( c % 16 );
         }
         for ( ; j < 20 ; ++j )
@@ -32,8 +59,9 @@ static void DumpBinaryData( std::string_view s )
             render_print << " ";
         }
 
-        std::cout << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
+        html_out << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
     }
+    html_out << "</pre>";
 }
 
 ELF_File::ELF_File( InputBuffer &input_ )
@@ -64,8 +92,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( input.U64At( 0x20 ) == 0 ); // Program header offset
 
     section_header_offset = input.U64At( 0x28 );
-    std::cout << "Section header offset = " << section_header_offset << "\n";
-
     ASSERT( input.U32At( 0x30 ) == 0 ); // Flags
 
     ASSERT( input.U16At( 0x34 ) == 64 ); // ELF Header size
@@ -73,91 +99,184 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( input.U16At( 0x38 ) == 0 ); // program header num entries
 
     section_header_entry_size = input.U16At( 0x3A );
-    std::cout << "Section header entry size = " << section_header_entry_size << "\n";
-
     section_header_num_entries = input.U16At( 0x3C );
-    std::cout << "Section header num entries = " << section_header_num_entries << "\n";
-
     section_names_header_index = input.U16At( 0x3E );
-    std::cout << "Section names header index = " << section_names_header_index << "\n";
-
-
-    // Extract section offsets first
-    for ( int i = 0; i < section_header_num_entries; ++i )
-    {
-        uint64_t header_offset = section_header_offset + section_header_entry_size * i;
-        section_offsets.push_back( input.U64At( header_offset + 0x18 ) );
-    }
-    std::sort( section_offsets.begin(), section_offsets.end() );
-
-    std::cout << "Section offsets:";
-    for ( uint64_t o : section_offsets )
-    {
-        std::cout << "  " << o << ",";
-    }
-    std::cout << "\n";
 
 
     // TODO make this a member var
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
     uint64_t shstrtab_offset = input.U64At( shstrtab_header_offset + 0x18 );
-    std::cout << "Initializing shstrtab\n";
     shstrtab = StringTable( *this, shstrtab_offset, input.U64At( shstrtab_header_offset + 0x20 ) );
 
-    std::optional< SectionHeader > symtab_header;
-
-    std::vector< SectionHeader > section_headers;
-    section_headers.reserve( section_header_num_entries );
+    m_section_headers.reserve( section_header_num_entries );
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
-        section_headers.emplace_back( *this, section_header_offset + section_header_entry_size * i );
+        m_section_headers.emplace_back( *this, section_header_offset + section_header_entry_size * i );
     }
 
-    std::cout << "Section headers:\n";
-    for ( size_t i = 0; i < section_headers.size(); ++i )
+    for ( size_t i = 0; i < m_section_headers.size(); ++i )
     {
-        const SectionHeader &sh = section_headers[ i ];
-        std::cout << "\n- SectionHeader[ " << i << " ]" << std::endl;
-        sh.Dump();
+        const SectionHeader &sh = m_section_headers[ i ];
 
-        uint64_t begin = sh.m_offset;
-        uint64_t end = begin + sh.m_size;
+        if ( sh.m_name == ".symtab" )
+        {
+            m_symtab_header = sh;
+        }
+
+        if ( sh.m_name == ".strtab" )
+        {
+            strtab = StringTable( *this, sh.m_offset, sh.m_size );
+        }
+    }
+
+
+    ASSERT( strtab );
+    ASSERT( m_symtab_header );
+    ASSERT( m_symtab_header->m_ent_size == 24 );
+}
+
+void ELF_File::render_html_into( std::ostream &html_out )
+{
+    html_out << R"(<!doctype html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
+    <style>
+      :root {
+        --section-header-table-thead-height: 2em;
+      }
+
+      #section-headers-header-row {
+        height: var( --section-header-table-thead-height );
+        background-color: #eee;
+      }
+
+      td {
+        vertical-align: top;
+      }
+
+      .section_header_anchor {
+        display: block;
+        position: relative;
+        top: calc( var( --section-header-table-thead-height ) * -1 );
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+)";
+
+    html_out << R"(
+Section headers:<br>
+<table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
+  <thead>
+    <tr id="section-headers-header-row">
+      <th>Section Header</th>
+      <th width="200">Name</th>
+      <th>Type</th>
+      <th>Attrs</th>
+      <th>Address</th>
+      <th>Offset</th>
+      <th>Size</th>
+      <th>Asso Idx</th>
+      <th>Info</th>
+      <th>Addr Align</th>
+      <th>Ent Size</th>
+    </tr>
+  </thead>
+  <tbody>
+)";
+
+    for ( size_t i = 0; i < m_section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = m_section_headers[ i ];
+
+        if ( i == 0 )
+        {
+            continue;
+        }
+
+        html_out << "<tr>"
+                 << "<td><a class=\"section_header_anchor\" name=\"section-" << i << "\"></a><a href=\"#section-" << i << "\">" << i << "</a></td>"
+                 << "<td>" << escape( sh.m_name ) << "</td>"
+                 << "<td>" << sh.m_type << "</td>"
+                 << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
+                 << "<td>" << sh.m_address << "</td>";
+
+        if ( sh.m_type == SectionType::Group )
+        {
+            html_out << "<td><a href=\"#group-section-at-" << sh.m_offset << "\">" << sh.m_offset << "</a></td>";
+        }
+        else
+        {
+            html_out << "<td>" << sh.m_offset << "</td>";
+        }
+
+        html_out << "<td>" << sh.m_size << "</td>"
+                 << "<td>" << sh.m_asso_idx << "</td>"
+                 << "<td>" << sh.m_info << "</td>"
+                 << "<td>" << sh.m_addr_align << "</td>"
+                 << "<td>" << sh.m_ent_size << "</td>"
+                 << "</tr>";
+    }
+    html_out << "</tbody></table>";
+
+    uint64_t symtab_offset = m_symtab_header->m_offset;
+    uint64_t symtab_elem_cnt = m_symtab_header->m_size / 24;
+    ASSERT( symtab_elem_cnt != 0 );
+    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
+    {
+        Symbol s( *this, symtab_offset + 24 * i );
+        html_out << "Symbol[ " << i << " ]<br>";
+        html_out << "  - name = " << s.m_name << "<br>";
+        html_out << "  - bind = " << s.m_binding << "<br>";
+        html_out << "  - type = " << s.m_type << "<br>";
+        html_out << "  - visibility = " << s.m_visibility << "<br>";
+        html_out << "  - section idx = " << s.m_section_idx << "<br>";
+        html_out << "  - value = " << s.m_value << "<br>";
+        html_out << "  - size = " << s.m_size << "<br>";
+    }
+
+    auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
+    {
+        ASSERT( size % 4 == 0 );
+
+        ASSERT( this->input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
+
+        html_out << "<a name=\"group-section-at-" << offset << "\"></a>GROUP section at " << offset << " with size " << size << "<br>"
+                 << "    - flags: GRP_COMDAT<br>";
+
+        uint64_t it = offset + 4;
+        uint64_t end = offset + size;
+
+        for ( ; it != end; it += 4 )
+        {
+            html_out << "    - section_header_idx : " << this->input.U32At( it ) << "<br>";
+        }
+    };
+
+    for ( size_t i = 0; i < m_section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = m_section_headers[ i ];
 
         if ( sh.m_type == SectionType::Group )
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
         }
 
-        if ( sh.m_type == SectionType::ProgramData )
-        {
-            if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
-            {
-                for ( auto i = begin; i < end; ++i )
-                {
-                    // Read by external prog, mark them here
-                    (void)input.U8At( i );
-                }
-
-                std::stringstream cmd;
-                cmd << "/bin/bash -c \"ndisasm -b64 <( dd if=" << input.file_name << " ibs=1 skip=" << begin << " count=" << end - begin << " 2>/dev/null )\"";
-                std::cout << "Disassembly via command: " << cmd.str() << ":" << std::endl;
-                system( cmd.str().c_str() );
-            }
-            else
-            {
-                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
-            }
-        }
-
         if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
         {
-            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ) );
+            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
         }
 
         if ( sh.m_type == SectionType::RelocationEntries )
         {
             ASSERT( sh.m_ent_size == 24 );
             ASSERT( sh.m_size % 24 == 0 );
+
+            html_out << "Relocation entries at: " << sh.m_offset << "<br/>";
+            html_out << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
 
             for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
             {
@@ -168,77 +287,51 @@ ELF_File::ELF_File( InputBuffer &input_ )
                 uint32_t type   = input.U32At( ent_offset + 0x0c );
                 int64_t addend  = input.U64At( ent_offset + 0x10 );
 
-                std::cout << "RelocationEntry[ " << i << " ]:\n";
-                std::cout << "  - offset = " << offset << "\n";
-                std::cout << "  - sym = " << sym << "\n";
-                std::cout << "  - type = " << type << "\n";
-                std::cout << "  - addend = " << addend << "\n";
+                html_out << "<tr>"
+                         << "<td>" << i << "</td>"
+                         << "<td>" << offset << "</td>"
+                         << "<td>" << sym << "</td>"
+                         << "<td>" << type << "</td>"
+                         << "<td>" << addend << "</td>"
+                         << "</tr>";
             }
+            html_out << "</table>";
         }
 
         if ( sh.m_type == SectionType::StringTable )
         {
-            std::cout << "Dumping StringTable:\n";
-            for ( auto i = begin; i < end; ++i )
+            html_out << "String table at: " << sh.m_offset << "<br/>";
+            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+        }
+
+        if ( sh.m_type == SectionType::ProgramData )
+        {
+            if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
             {
-                char c = (char)input.U8At( i );
-                std::cout << ( isprint( c ) ? c : '.' );
+                std::stringstream disasm_out;
+
+                auto fp = []( const char *ins, void *data )
+                {
+                    *static_cast< std::stringstream* >( data ) << ins;
+                };
+
+                html_out << "Disassembling section of size = " << sh.m_size << "\n";
+
+
+                std::string_view exec = input.StringViewAt( sh.m_offset, sh.m_size );
+                DisasmExecutableSection( (const unsigned char *)exec.data(), exec.size(), fp, static_cast< void* >( &disasm_out ) );
+
+                html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
             }
-            std::cout << "\n";
+            else
+            {
+                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+            }
         }
 
-        if ( sh.m_name == ".symtab" )
-        {
-            symtab_header = sh;
-        }
-
-        if ( sh.m_name == ".strtab" )
-        {
-            std::cout << "Initializing strtab\n";
-            strtab = StringTable( *this, sh.m_offset, sh.m_size );
-        }
-
-        Section &sec = m_sections.emplace_back();
-        sec.m_name = sh.m_name;
-        if ( sh.m_type == SectionType::StringTable )
-        {
-            sec.m_var.emplace< StringTableSection >();
-        }
     }
 
 
-    ASSERT( strtab );
-    ASSERT( symtab_header );
-    ASSERT( symtab_header->m_ent_size == 24 );
-    uint64_t symtab_offset = symtab_header->m_offset;
-    uint64_t symtab_elem_cnt = symtab_header->m_size / 24;
-    std::cout << "Fount symtab elem count = " << symtab_elem_cnt << "\n";
-    ASSERT( symtab_elem_cnt != 0 );
-
-    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
-    {
-        Symbol s( *this, symtab_offset + 24 * i );
-        std::cout << "Symbol[ " << i << " ]\n";
-        s.Dump();
-    }
-}
-
-void ELF_File::DumpGroupSection( uint64_t offset, uint64_t size ) const
-{
-    ASSERT( size % 4 == 0 );
-
-    ASSERT( input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
-
-    std::cout << "    Dumping GROUP section at " << offset << " with size " << size << "\n";
-    std::cout << "    - flags: GRP_COMDAT\n";
-
-    uint64_t it = offset + 4;
-    uint64_t end = offset + size;
-
-    for ( ; it != end; it += 4 )
-    {
-        std::cout << "    - section_header_idx : " << input.U32At( it ) << "\n";
-    }
 }
 
 SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
@@ -255,27 +348,6 @@ SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
     m_ent_size   = ctx.input.U64At( offset + 0x38 );
 }
 
-void SectionHeader::Dump() const
-{
-    std::cout << "  - name      = " << m_name << "\n";
-    std::cout << "  - type      = " << m_type << "\n";
-    if ( m_attrs.m_val )
-        std::cout << "  - attrs     = " << to_string( m_attrs ) << "\n";
-    if ( m_address )
-        std::cout << "  - address   = " << m_address << "\n";
-    if ( m_offset )
-        std::cout << "  - offset    = " << m_offset << "\n";
-    std::cout << "  - size  = " << m_size << "\n";
-    if ( m_asso_idx )
-        std::cout << "  - asso idx  = " << m_asso_idx << "\n";
-    if ( m_info )
-        std::cout << "  - info      = " << m_info << "\n";
-    if ( m_addr_align )
-        std::cout << "  - addralign = " << m_addr_align << "\n";
-    if ( m_ent_size )
-        std::cout << "  - entsize   = " << m_ent_size << "\n";
-}
-
 Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
 {
     m_name = ctx.strtab->StringAtOffset( ctx.input.U32At( offset ) );
@@ -286,17 +358,6 @@ Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
     m_section_idx = ctx.input.U16At( offset + 6 );
     m_value = ctx.input.U64At( offset + 8 );
     m_size = ctx.input.U64At( offset + 16 );
-}
-
-void Symbol::Dump() const
-{
-    std::cout << "  - name = " << m_name << "\n";
-    std::cout << "  - bind = " << m_binding << "\n";
-    std::cout << "  - type = " << m_type << "\n";
-    std::cout << "  - visibility = " << m_visibility << "\n";
-    std::cout << "  - section idx = " << m_section_idx << "\n";
-    std::cout << "  - value = " << m_value << "\n";
-    std::cout << "  - size = " << m_size << "\n";
 }
 
 StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size )

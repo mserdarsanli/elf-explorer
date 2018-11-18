@@ -37,7 +37,10 @@ int main( int argc, char* argv[] )
 
     InputBuffer input( argv[ 1 ], read_file( argv[ 1 ] ) );
     ELF_File file( input );
-    std::cout << "File looks fine.\n";
+
+    std::stringstream html_out;
+    file.render_html_into( html_out );
+    html_out << "File looks fine.\n";
 
 
     auto begin = input.m_read.begin();
@@ -63,8 +66,20 @@ int main( int argc, char* argv[] )
             continue;
         }
 
-        std::cout << "Unread [ " << unread_begin - begin << ", " << unread_end - begin << " )\n";
+        html_out << "Unread [ " << unread_begin - begin << ", " << unread_end - begin << " )\n";
     }
+
+    html_out << R"(
+<script>
+  console.log( 'Enabling float Thead for: ', $('#table-section-headers') );
+  $('#table-section-headers').floatThead({
+position: 'fixed'
+});
+</script>
+</body></html>
+)";
+
+    std::cout << html_out.str();
 
     return 0;
 }

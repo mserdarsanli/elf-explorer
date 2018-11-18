@@ -1,2 +1,3 @@
 out
-src/enums.hpp
+.ninja_deps
+.ninja_log
