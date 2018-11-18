@@ -28,7 +28,7 @@ static std::vector< unsigned char > read_file( const char *file_name )
 }
 
 
-int main( int argc, char* argv[] )
+int my_main( int argc, char* argv[] )
 {
     if ( argc != 2 )
     {
@@ -94,3 +94,18 @@ position: 'fixed'
 
     return 0;
 }
+
+int main( int argc, char* argv[] )
+{
+    return my_main( argc, argv );
+}
+
+extern "C" {
+void run_example()
+{
+    char arg1[] = "foo";
+    char arg2[] = "--test-data";
+    char* args[3] = { arg1, arg2, nullptr };
+    my_main( 2, args );
+}
+} // extern "C"

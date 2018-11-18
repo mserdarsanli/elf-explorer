@@ -18,4 +18,5 @@ emcc -g -o out/f15.o $FLAGS -c third_party/nasm/nasmlib/badenum.c
 emcc -g -o out/f16.o $FLAGS -c third_party/nasm/nasmlib/malloc.c
 emcc -g -o out/f17.o $FLAGS -c third_party/nasm/nasmlib/string.c
 
-emcc -s ALLOW_MEMORY_GROWTH=1  -g -std=c++17 -I out/gen src/symbol_renamer.cpp src/elf_structs.cpp src/input_buffer.cpp out/f*.o
+emcc -s "EXPORTED_FUNCTIONS=['_run_example']" -s ALLOW_MEMORY_GROWTH=1  -g -std=c++17 -I out/gen src/symbol_renamer.cpp src/elf_structs.cpp src/input_buffer.cpp out/f*.o \
+  -o out/emcc.js
