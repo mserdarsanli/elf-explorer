@@ -121,33 +121,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
         // uint64_t begin = sh.m_offset;
         // uint64_t end = begin + sh.m_size;
 
-        // if ( sh.m_type == SectionType::RelocationEntries )
-        // {
-        //     ASSERT( sh.m_ent_size == 24 );
-        //     ASSERT( sh.m_size % 24 == 0 );
-
-        //     std::cout << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
-
-        //     for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
-        //     {
-        //         uint64_t ent_offset = sh.m_offset + 24 * i;
-
-        //         uint64_t offset = input.U64At( ent_offset + 0x00 );
-        //         uint32_t sym    = input.U32At( ent_offset + 0x08 );
-        //         uint32_t type   = input.U32At( ent_offset + 0x0c );
-        //         int64_t addend  = input.U64At( ent_offset + 0x10 );
-
-        //         std::cout << "<tr>"
-        //                   << "<td>" << i << "</td>"
-        //                   << "<td>" << offset << "</td>"
-        //                   << "<td>" << sym << "</td>"
-        //                   << "<td>" << type << "</td>"
-        //                   << "<td>" << addend << "</td>"
-        //                   << "</tr>";
-        //     }
-        //     std::cout << "</table>";
-        // }
-
         // if ( sh.m_type == SectionType::StringTable )
         // {
         //     std::cout << "<pre>";
@@ -324,6 +297,35 @@ Section headers:<br>
         {
             DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
         }
+
+        if ( sh.m_type == SectionType::RelocationEntries )
+        {
+            ASSERT( sh.m_ent_size == 24 );
+            ASSERT( sh.m_size % 24 == 0 );
+
+            html_out << "Relocation entries at: " << sh.m_offset << "<br/>";
+            html_out << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+
+            for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
+            {
+                uint64_t ent_offset = sh.m_offset + 24 * i;
+
+                uint64_t offset = input.U64At( ent_offset + 0x00 );
+                uint32_t sym    = input.U32At( ent_offset + 0x08 );
+                uint32_t type   = input.U32At( ent_offset + 0x0c );
+                int64_t addend  = input.U64At( ent_offset + 0x10 );
+
+                html_out << "<tr>"
+                         << "<td>" << i << "</td>"
+                         << "<td>" << offset << "</td>"
+                         << "<td>" << sym << "</td>"
+                         << "<td>" << type << "</td>"
+                         << "<td>" << addend << "</td>"
+                         << "</tr>";
+            }
+            html_out << "</table>";
+        }
+
 
         if ( sh.m_type == SectionType::ProgramData )
         {
