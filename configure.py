@@ -7,6 +7,7 @@ cxx = g++
 cc = gcc
 cppflags = -std=c++17 -Wall -Wpedantic -fPIC -O3 -I out/gen
 nasm_cppflags = -DHAVE_CONFIG_H -I third_party/nasm/include -I third_party/nasm -I third_party/nasm/x86 -I third_party/nasm/asm
+emcc = emcc
 
 rule compile
     depfile = $out.d
@@ -26,6 +27,17 @@ rule nasm_compile
 
 rule create_archive
     command = ar rvs $out $in
+
+rule emcc_compile
+    depfile = $out.d
+    command = $emcc -MMD -MF $out.d -g $cppflags -c $in -o $out
+
+rule emcc_nasm_compile
+    depfile = $out.d
+    command = $emcc -MMD -MF $out.d -g $nasm_cppflags -c $in -o $out
+
+rule emcc_link
+    command = $emcc -s "EXPORTED_FUNCTIONS=['_run_example']" -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 '''
 
 nasm_sources = [
@@ -54,8 +66,11 @@ objexp_sources = [
     'src/symbol_renamer.cpp',
 ]
 
-nasm_objects = [ 'out/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
-objexp_objects = [ 'out/' + src.replace( '.cpp', '.o' ) for src in objexp_sources ]
+nasm_objects = [ 'out/cpp/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
+objexp_objects = [ 'out/cpp/' + src.replace( '.cpp', '.o' ) for src in objexp_sources ]
+
+emcc_nasm_objects = [ 'out/emcc/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
+emcc_objexp_objects = [ 'out/emcc/' + src.replace( '.cpp', '.o' ) for src in objexp_sources ]
 
 def main():
     with open( 'build.ninja', 'w' ) as ninja:
@@ -64,12 +79,19 @@ def main():
         for src, obj in zip( nasm_sources, nasm_objects ):
             ninja.write( f'build {obj}: nasm_compile {src}\n' )
 
-        ninja.write( f'build out/third_party/nasm/disasm_lib.a: create_archive {" ".join( nasm_objects )}\n' )
+        for src, obj in zip( nasm_sources, emcc_nasm_objects ):
+            ninja.write( f'build {obj}: emcc_nasm_compile {src}\n' )
+
+        ninja.write( f'build out/cpp/disasm_lib.a: create_archive {" ".join( nasm_objects )}\n' )
 
         for src, obj in zip( objexp_sources, objexp_objects ):
             ninja.write( f'build {obj}: compile {src}\n' )
 
-        ninja.write( f'build out/symbol_renamer: link {" ".join( objexp_objects ) } out/third_party/nasm/disasm_lib.a\n' )
+        for src, obj in zip( objexp_sources, emcc_objexp_objects ):
+            ninja.write( f'build {obj}: emcc_compile {src}\n' )
+
+        ninja.write( f'build out/symbol_renamer: link {" ".join( objexp_objects ) } out/cpp/disasm_lib.a\n' )
+        ninja.write( f'build out/object_explorer.js: emcc_link {" ".join( emcc_nasm_objects + emcc_objexp_objects ) }\n' )
 
 
 if __name__ == "__main__":
