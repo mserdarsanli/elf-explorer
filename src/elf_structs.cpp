@@ -127,13 +127,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
         {
             strtab = StringTable( *this, sh.m_offset, sh.m_size );
         }
-
-        // Section &sec = m_sections.emplace_back();
-        // sec.m_name = sh.m_name;
-        // if ( sh.m_type == SectionType::StringTable )
-        // {
-        //     sec.m_var.emplace< StringTableSection >();
-        // }
     }
 
 

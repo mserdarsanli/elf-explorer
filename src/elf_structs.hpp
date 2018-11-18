@@ -117,22 +117,6 @@ struct SectionHeader
     uint64_t m_ent_size;
 };
 
-// High-level structs
-
-struct StringTableSection
-{
-    std::string m_data;
-};
-
-struct Section
-{
-    std::string m_name;
-
-    std::variant< std::monostate // Unknown/Unset
-        , StringTableSection
-    > m_var;
-};
-
 struct ELF_File
 {
     ELF_File( InputBuffer & );
@@ -146,7 +130,6 @@ struct ELF_File
 
     std::optional< SectionHeader > m_symtab_header; // TODO header_idx would be more useful
     std::vector< SectionHeader > m_section_headers;
-    std::vector< Section > m_sections;
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;
