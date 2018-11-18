@@ -19,6 +19,9 @@ rule link
 rule run_python
     command = python3 $in > $out
 
+rule run_cp
+    command = cp $in $out
+
 build out/gen/enums.hpp: run_python src/gen_enums.py
 
 rule nasm_compile
@@ -38,6 +41,8 @@ rule emcc_nasm_compile
 
 rule emcc_link
     command = $emcc -s "EXPORTED_FUNCTIONS=['_run_example']" -s ALLOW_MEMORY_GROWTH=1 $in -o $out
+
+build out/web/test.html: run_cp web/test.html
 '''
 
 nasm_sources = [
@@ -91,7 +96,7 @@ def main():
             ninja.write( f'build {obj}: emcc_compile {src}\n' )
 
         ninja.write( f'build out/symbol_renamer: link {" ".join( objexp_objects ) } out/cpp/disasm_lib.a\n' )
-        ninja.write( f'build out/object_explorer.js: emcc_link {" ".join( emcc_nasm_objects + emcc_objexp_objects ) }\n' )
+        ninja.write( f'build out/web/object_explorer.js: emcc_link {" ".join( emcc_nasm_objects + emcc_objexp_objects ) }\n' )
 
 
 if __name__ == "__main__":
