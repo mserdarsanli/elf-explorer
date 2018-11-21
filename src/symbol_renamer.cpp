@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <ios>
 #include <iostream>
@@ -28,6 +29,7 @@ static std::vector< unsigned char > read_file( const char *file_name )
 }
 
 std::vector< unsigned char > mem_data;
+std::string mem_result;
 
 int my_main( int argc, char* argv[] )
 {
@@ -95,7 +97,15 @@ position: 'fixed'
 </body></html>
 )";
 
-    std::cout << html_out.str();
+    // TODO clean up this creap
+    if ( argv[ 1 ] == std::string_view( "--mem-data" ) )
+    {
+        mem_result = html_out.str();
+    }
+    else
+    {
+        std::cout << html_out.str();
+    }
 
     return 0;
 }
@@ -114,7 +124,7 @@ void run_example()
     my_main( 2, args );
 }
 
-void run_with_buffer( const char *data, uint64_t size )
+char* run_with_buffer( const char *data, uint64_t size )
 {
     mem_data.assign( reinterpret_cast< const unsigned char * >( data ),
                      reinterpret_cast< const unsigned char * >( data ) + size );
@@ -122,6 +132,8 @@ void run_with_buffer( const char *data, uint64_t size )
     char arg2[] = "--mem-data";
     char* args[3] = { arg1, arg2, nullptr };
     my_main( 2, args );
+
+    return strdup( mem_result.c_str() );
 }
 
 } // extern "C"

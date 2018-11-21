@@ -7,12 +7,6 @@
     <div id="drop-area" style="background-color: #cccccc; height: 200px;">Drop your file here</div>
 
     <script>
-
-Module.onRuntimeInitialized = function() {
-  _run_example();
-};
-
-
 function passFileToEmscripten( file ) {
   return new Promise( (resolve, reject) => {
     var arrayBuffer;
@@ -54,7 +48,10 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
   }
 
   passFileToEmscripten( item.getAsFile() ).then( ( [addr, len] ) => {
-    Module.ccall( 'run_with_buffer', 'number', ['number', 'number'], [addr, len] )
+    var htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [addr, len] );
+    document.open();
+    document.write( htmlContents );
+    document.close();
   } );
 
 });
