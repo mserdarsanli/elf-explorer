@@ -27,6 +27,7 @@ static std::vector< unsigned char > read_file( const char *file_name )
     return contents;
 }
 
+std::vector< unsigned char > mem_data;
 
 int my_main( int argc, char* argv[] )
 {
@@ -40,6 +41,10 @@ int my_main( int argc, char* argv[] )
     if ( argv[ 1 ] == std::string_view( "--test-data" ) )
     {
         obj_file_contents.assign( out_src_prog1_o, out_src_prog1_o + out_src_prog1_o_len );
+    }
+    else if ( argv[ 1 ] == std::string_view( "--mem-data" ) )
+    {
+        obj_file_contents = mem_data;
     }
     else
     {
@@ -108,4 +113,15 @@ void run_example()
     char* args[3] = { arg1, arg2, nullptr };
     my_main( 2, args );
 }
+
+void run_with_buffer( const char *data, uint64_t size )
+{
+    mem_data.assign( reinterpret_cast< const unsigned char * >( data ),
+                     reinterpret_cast< const unsigned char * >( data ) + size );
+    char arg1[] = "foo";
+    char arg2[] = "--mem-data";
+    char* args[3] = { arg1, arg2, nullptr };
+    my_main( 2, args );
+}
+
 } // extern "C"
