@@ -283,18 +283,22 @@ void ELF_File::render_html_into( std::ostream &html_out )
         }
     };
 
-    for ( size_t i = 0; i < m_section_headers.size(); ++i )
+    for ( size_t i = 1; i < m_section_headers.size(); ++i )
     {
         const SectionHeader &sh = m_section_headers[ i ];
+
+        html_out << "<h2>Section " << i << " ( type: " << sh.m_type << ", offset: " << sh.m_offset << " )</h2>";
 
         if ( sh.m_type == SectionType::Group )
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
+            continue;
         }
 
         if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
         {
             DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+            continue;
         }
 
         if ( sh.m_type == SectionType::RelocationEntries )
@@ -302,7 +306,6 @@ void ELF_File::render_html_into( std::ostream &html_out )
             ASSERT( sh.m_ent_size == 24 );
             ASSERT( sh.m_size % 24 == 0 );
 
-            html_out << "Relocation entries at: " << sh.m_offset << "<br/>";
             html_out << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
 
             for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
@@ -323,12 +326,13 @@ void ELF_File::render_html_into( std::ostream &html_out )
                          << "</tr>";
             }
             html_out << "</table>";
+            continue;
         }
 
         if ( sh.m_type == SectionType::StringTable )
         {
-            html_out << "String table at: " << sh.m_offset << "<br/>";
             DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+            continue;
         }
 
         if ( sh.m_type == SectionType::ProgramData )
@@ -354,8 +358,10 @@ void ELF_File::render_html_into( std::ostream &html_out )
             {
                 DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
             }
+            continue;
         }
 
+        std::cerr << "<script>console.log( 'unknown section' );</script>\n";
     }
 
 
