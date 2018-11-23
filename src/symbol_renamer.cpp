@@ -93,6 +93,9 @@ int my_main( int argc, char* argv[] )
   $('#table-section-headers').floatThead({
 position: 'fixed'
 });
+  $('#table-symbols').floatThead({
+position: 'fixed'
+});
 </script>
 </body></html>
 )";

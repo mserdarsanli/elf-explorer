@@ -145,6 +145,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
     <style>
       :root {
         --section-header-table-thead-height: 2em;
+        --symbols-table-thead-height: 2em;
       }
 
       #section-headers-header-row {
@@ -162,13 +163,18 @@ void ELF_File::render_html_into( std::ostream &html_out )
         top: calc( var( --section-header-table-thead-height ) * -1 );
         visibility: hidden;
       }
+
+      #symbols-header-row {
+        height: var( --symbols-table-thead-height );
+        background-color: #eee;
+      }
     </style>
   </head>
   <body>
 )";
 
     html_out << R"(
-Section headers:<br>
+<h2>Section Headers</h2>
 <table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
   <thead>
     <tr id="section-headers-header-row">
@@ -225,18 +231,39 @@ Section headers:<br>
     uint64_t symtab_offset = m_symtab_header->m_offset;
     uint64_t symtab_elem_cnt = m_symtab_header->m_size / 24;
     ASSERT( symtab_elem_cnt != 0 );
+
+    html_out << R"(
+<h2>Symbols</h2>
+<table id="table-symbols" border="1" cellspacing="0" style="word-break: break-all;">
+  <thead>
+    <tr id="symbols-header-row">
+      <th>Symbol</th>
+      <th width="200">Name</th>
+      <th>Bind</th>
+      <th>Type</th>
+      <th>Visibility</th>
+      <th>Section Idx</th>
+      <th>Value</th>
+      <th>Size</th>
+    </tr>
+  </thead>
+  <tbody>
+)";
+
     for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
     {
         Symbol s( *this, symtab_offset + 24 * i );
-        html_out << "Symbol[ " << i << " ]<br>";
-        html_out << "  - name = " << s.m_name << "<br>";
-        html_out << "  - bind = " << s.m_binding << "<br>";
-        html_out << "  - type = " << s.m_type << "<br>";
-        html_out << "  - visibility = " << s.m_visibility << "<br>";
-        html_out << "  - section idx = " << s.m_section_idx << "<br>";
-        html_out << "  - value = " << s.m_value << "<br>";
-        html_out << "  - size = " << s.m_size << "<br>";
+        html_out << "<td>" << i << "</td>"
+                 << "<td>" << s.m_name << "</td>"
+                 << "<td>" << s.m_binding << "</td>"
+                 << "<td>" << s.m_type << "</td>"
+                 << "<td>" << s.m_visibility << "</td>"
+                 << "<td>" << s.m_section_idx << "</td>"
+                 << "<td>" << s.m_value << "</td>"
+                 << "<td>" << s.m_size << "</td>"
+                 << "</tr>";
     }
+    html_out << "</tbody></table>";
 
     auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
     {
