@@ -186,22 +186,13 @@ void ELF_File::render_html_into( std::ostream &html_out )
         }
 
         html_out << "<tr>"
-                 << "<td><a class=\"section_header_anchor\" name=\"section-" << i << "\"></a><a href=\"#section-" << i << "\">" << i << "</a></td>"
+                 << "<td><a class=\"section_header_anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
                  << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
-                 << "<td>" << sh.m_address << "</td>";
-
-        if ( sh.m_type == SectionType::Group )
-        {
-            html_out << "<td><a href=\"#group-section-at-" << sh.m_offset << "\">" << sh.m_offset << "</a></td>";
-        }
-        else
-        {
-            html_out << "<td>" << sh.m_offset << "</td>";
-        }
-
-        html_out << "<td>" << sh.m_size << "</td>"
+                 << "<td>" << sh.m_address << "</td>"
+                 << "<td><a href=\"#section-" << i << "\">" << sh.m_offset << "</a></td>"
+                 << "<td>" << sh.m_size << "</td>"
                  << "<td>" << sh.m_asso_idx << "</td>"
                  << "<td>" << sh.m_info << "</td>"
                  << "<td>" << sh.m_addr_align << "</td>"
@@ -253,7 +244,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
 
         ASSERT( this->input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
 
-        html_out << "<a name=\"group-section-at-" << offset << "\"></a>GROUP section at " << offset << " with size " << size << "<br>"
+        html_out << "GROUP section at " << offset << " with size " << size << "<br>"
                  << "    - flags: GRP_COMDAT<br>";
 
         uint64_t it = offset + 4;
@@ -269,7 +260,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
-        html_out << "<h2>Section " << i << " ( type: " << sh.m_type << ", offset: " << sh.m_offset << " )</h2>";
+        html_out << "<a name=\"section-" << i << "\"><h2>Section " << i << " ( type: " << sh.m_type << ", offset: " << sh.m_offset << " )</h2></a>";
 
         if ( sh.m_type == SectionType::Group )
         {
