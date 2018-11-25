@@ -58,8 +58,6 @@ int my_main( int argc, char* argv[] )
 
     std::stringstream html_out;
     file.render_html_into( html_out );
-    html_out << "File looks fine.\n";
-
 
     auto begin = input.m_read.begin();
     auto end = input.m_read.end();
