@@ -67,6 +67,7 @@ nasm_sources = [
 
 objexp_sources = [
     'src/elf_structs.cpp',
+    'src/html_output.cpp',
     'src/input_buffer.cpp',
     'src/symbol_renamer.cpp',
 ]

@@ -1,24 +1,6 @@
 #include "elf_structs.hpp"
+#include "html_output.hpp"
 #include "wrap_nasm.h"
-
-static std::string escape( const std::string &s )
-{
-    std::string res;
-
-    for ( char c : s )
-    {
-        switch ( c )
-        {
-        case '<': res += "&lt;"; break;
-        case '>': res += "&gt;"; break;
-        case '&': res += "&amp;"; break;
-        case '"': res += "&quot;"; break;
-        default: res += c;
-        }
-    }
-
-    return res;
-}
 
 static void DumpBinaryData( std::string_view s, std::ostream &html_out )
 {
@@ -331,7 +313,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
 
         if ( sh.m_type == SectionType::StringTable )
         {
-            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+            RenderAsStringTable( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
             continue;
         }
 
