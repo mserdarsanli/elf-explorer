@@ -54,3 +54,37 @@ std::string escape( const std::string &s )
     return res;
 }
 
+void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &symbols )
+{
+    html_out << R"(
+<table id="table-symbols" border="1" cellspacing="0" style="word-break: break-all;">
+  <thead>
+    <tr id="symbols-header-row">
+      <th>Symbol</th>
+      <th width="200">Name</th>
+      <th>Bind</th>
+      <th>Type</th>
+      <th>Visibility</th>
+      <th>Section Idx</th>
+      <th>Value</th>
+      <th>Size</th>
+    </tr>
+  </thead>
+  <tbody>
+)";
+
+    for ( size_t i = 0; i < symbols.size(); ++i )
+    {
+        const Symbol &s = symbols[ i ];
+        html_out << "<td>" << i << "</td>"
+                 << "<td>" << s.m_name << "</td>"
+                 << "<td>" << s.m_binding << "</td>"
+                 << "<td>" << s.m_type << "</td>"
+                 << "<td>" << s.m_visibility << "</td>"
+                 << "<td>" << s.m_section_idx << "</td>"
+                 << "<td>" << s.m_value << "</td>"
+                 << "<td>" << s.m_size << "</td>"
+                 << "</tr>";
+    }
+    html_out << "</tbody></table>";
+}

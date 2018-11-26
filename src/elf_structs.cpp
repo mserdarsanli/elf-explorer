@@ -100,11 +100,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
-        if ( sh.m_name == ".symtab" )
-        {
-            m_symtab_header = sh;
-        }
-
         if ( sh.m_name == ".strtab" )
         {
             strtab = StringTable( *this, sh.m_offset, sh.m_size );
@@ -113,8 +108,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
 
     ASSERT( strtab );
-    ASSERT( m_symtab_header );
-    ASSERT( m_symtab_header->m_ent_size == 24 );
 }
 
 void ELF_File::render_html_into( std::ostream &html_out )
@@ -201,43 +194,6 @@ void ELF_File::render_html_into( std::ostream &html_out )
     }
     html_out << "</tbody></table>";
 
-    uint64_t symtab_offset = m_symtab_header->m_offset;
-    uint64_t symtab_elem_cnt = m_symtab_header->m_size / 24;
-    ASSERT( symtab_elem_cnt != 0 );
-
-    html_out << R"(
-<h2>Symbols</h2>
-<table id="table-symbols" border="1" cellspacing="0" style="word-break: break-all;">
-  <thead>
-    <tr id="symbols-header-row">
-      <th>Symbol</th>
-      <th width="200">Name</th>
-      <th>Bind</th>
-      <th>Type</th>
-      <th>Visibility</th>
-      <th>Section Idx</th>
-      <th>Value</th>
-      <th>Size</th>
-    </tr>
-  </thead>
-  <tbody>
-)";
-
-    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
-    {
-        Symbol s( *this, symtab_offset + 24 * i );
-        html_out << "<td>" << i << "</td>"
-                 << "<td>" << s.m_name << "</td>"
-                 << "<td>" << s.m_binding << "</td>"
-                 << "<td>" << s.m_type << "</td>"
-                 << "<td>" << s.m_visibility << "</td>"
-                 << "<td>" << s.m_section_idx << "</td>"
-                 << "<td>" << s.m_value << "</td>"
-                 << "<td>" << s.m_size << "</td>"
-                 << "</tr>";
-    }
-    html_out << "</tbody></table>";
-
     auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
     {
         ASSERT( size % 4 == 0 );
@@ -266,6 +222,21 @@ void ELF_File::render_html_into( std::ostream &html_out )
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
             continue;
+        }
+
+        if ( sh.m_type == SectionType::SymbolTable )
+        {
+            ASSERT( sh.m_ent_size == 24 );
+
+            std::vector< Symbol > symbols;
+            symbols.reserve( sh.m_size / sh.m_ent_size );
+
+            for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
+            {
+                symbols.emplace_back( *this, sh.m_offset + 24 * i );
+            }
+
+            RenderSymbolTable( html_out, symbols );
         }
 
         if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
