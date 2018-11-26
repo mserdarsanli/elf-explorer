@@ -279,7 +279,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
             ASSERT( sh.m_ent_size == 24 );
             ASSERT( sh.m_size % 24 == 0 );
 
-            html_out << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+            html_out << "<table border=\"1\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
 
             for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
             {
@@ -287,7 +287,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
 
                 uint64_t offset = input.U64At( ent_offset + 0x00 );
                 uint32_t sym    = input.U32At( ent_offset + 0x08 );
-                uint32_t type   = input.U32At( ent_offset + 0x0c );
+                auto type       = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x0c ) );
                 int64_t addend  = input.U64At( ent_offset + 0x10 );
 
                 html_out << "<tr>"
