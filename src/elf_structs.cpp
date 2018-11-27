@@ -216,7 +216,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
-        html_out << "<a name=\"section-" << i << "\"><h2>Section " << i << " ( type: " << sh.m_type << ", offset: " << sh.m_offset << " )</h2></a>";
+        html_out << "<a name=\"section-" << i << "\"><h2>Section " << i << " ( type: " << sh.m_type << ", offset: " << sh.m_offset << ", size: " << sh.m_size << " )</h2></a>";
 
         if ( sh.m_type == SectionType::Group )
         {
