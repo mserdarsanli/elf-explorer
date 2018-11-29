@@ -43,6 +43,7 @@ rule emcc_link
     command = $emcc -s "EXPORTED_FUNCTIONS=['_run_example', '_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 
 build out/web/test.html: run_cp web/test.html
+build out/web/hello.o.gif: run_cp web/hello.o.gif
 '''
 
 nasm_sources = [

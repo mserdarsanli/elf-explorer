@@ -5,6 +5,7 @@
   </head>
   <body>
     <div id="drop-area" style="background-color: #cccccc; height: 200px;">Drop your file here</div>
+    <img id="hello-object-image" src="./hello.o.gif" draggable="true"></img>
 
     <script>
 function passFileToEmscripten( file ) {
@@ -23,17 +24,27 @@ function passFileToEmscripten( file ) {
   } );
 }
 
-
-
 document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
   ev.stopPropagation();
   ev.preventDefault();
 });
 
+document.getElementById( 'hello-object-image' ).addEventListener( 'dragstart', ev => {
+  console.log( 'Drag starwt called, setting target id: ', ev.target.id );
+  ev.dataTransfer.setData( 'object-id', ev.target.id );
+});
+
 document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
   ev.stopPropagation();
   ev.preventDefault();
-  window.ev = ev;
+
+  if ( ev.dataTransfer.getData( 'object-id' ) == 'hello-object-image' ) {
+    var htmlContents = `Data for hello.o`;
+    document.open();
+    document.write( htmlContents );
+    document.close();
+    return;
+  }
 
   if ( ev.dataTransfer.items.length != 1 ) {
     console.error( 'Can drop one file only' );
