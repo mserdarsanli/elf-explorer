@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <ios>
 #include <iostream>
@@ -27,6 +28,8 @@ static std::vector< unsigned char > read_file( const char *file_name )
     return contents;
 }
 
+std::vector< unsigned char > mem_data;
+std::string mem_result;
 
 int my_main( int argc, char* argv[] )
 {
@@ -41,6 +44,10 @@ int my_main( int argc, char* argv[] )
     {
         obj_file_contents.assign( out_src_prog1_o, out_src_prog1_o + out_src_prog1_o_len );
     }
+    else if ( argv[ 1 ] == std::string_view( "--mem-data" ) )
+    {
+        obj_file_contents = mem_data;
+    }
     else
     {
         obj_file_contents = read_file( argv[ 1 ] );
@@ -51,8 +58,6 @@ int my_main( int argc, char* argv[] )
 
     std::stringstream html_out;
     file.render_html_into( html_out );
-    html_out << "File looks fine.\n";
-
 
     auto begin = input.m_read.begin();
     auto end = input.m_read.end();
@@ -86,11 +91,22 @@ int my_main( int argc, char* argv[] )
   $('#table-section-headers').floatThead({
 position: 'fixed'
 });
+  $('#table-symbols').floatThead({
+position: 'fixed'
+});
 </script>
 </body></html>
 )";
 
-    std::cout << html_out.str();
+    // TODO clean up this creap
+    if ( argv[ 1 ] == std::string_view( "--mem-data" ) )
+    {
+        mem_result = html_out.str();
+    }
+    else
+    {
+        std::cout << html_out.str();
+    }
 
     return 0;
 }
@@ -108,4 +124,17 @@ void run_example()
     char* args[3] = { arg1, arg2, nullptr };
     my_main( 2, args );
 }
+
+char* run_with_buffer( const char *data, uint64_t size )
+{
+    mem_data.assign( reinterpret_cast< const unsigned char * >( data ),
+                     reinterpret_cast< const unsigned char * >( data ) + size );
+    char arg1[] = "foo";
+    char arg2[] = "--mem-data";
+    char* args[3] = { arg1, arg2, nullptr };
+    my_main( 2, args );
+
+    return strdup( mem_result.c_str() );
+}
+
 } // extern "C"

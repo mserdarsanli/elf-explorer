@@ -1,24 +1,6 @@
 #include "elf_structs.hpp"
+#include "html_output.hpp"
 #include "wrap_nasm.h"
-
-static std::string escape( const std::string &s )
-{
-    std::string res;
-
-    for ( char c : s )
-    {
-        switch ( c )
-        {
-        case '<': res += "&lt;"; break;
-        case '>': res += "&gt;"; break;
-        case '&': res += "&amp;"; break;
-        case '"': res += "&quot;"; break;
-        default: res += c;
-        }
-    }
-
-    return res;
-}
 
 static void DumpBinaryData( std::string_view s, std::ostream &html_out )
 {
@@ -118,11 +100,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
-        if ( sh.m_name == ".symtab" )
-        {
-            m_symtab_header = sh;
-        }
-
         if ( sh.m_name == ".strtab" )
         {
             strtab = StringTable( *this, sh.m_offset, sh.m_size );
@@ -131,8 +108,6 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
 
     ASSERT( strtab );
-    ASSERT( m_symtab_header );
-    ASSERT( m_symtab_header->m_ent_size == 24 );
 }
 
 void ELF_File::render_html_into( std::ostream &html_out )
@@ -145,6 +120,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
     <style>
       :root {
         --section-header-table-thead-height: 2em;
+        --symbols-table-thead-height: 2em;
       }
 
       #section-headers-header-row {
@@ -162,13 +138,18 @@ void ELF_File::render_html_into( std::ostream &html_out )
         top: calc( var( --section-header-table-thead-height ) * -1 );
         visibility: hidden;
       }
+
+      #symbols-header-row {
+        height: var( --symbols-table-thead-height );
+        background-color: #eee;
+      }
     </style>
   </head>
   <body>
 )";
 
     html_out << R"(
-Section headers:<br>
+<h2>Section Headers</h2>
 <table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
   <thead>
     <tr id="section-headers-header-row">
@@ -198,22 +179,13 @@ Section headers:<br>
         }
 
         html_out << "<tr>"
-                 << "<td><a class=\"section_header_anchor\" name=\"section-" << i << "\"></a><a href=\"#section-" << i << "\">" << i << "</a></td>"
+                 << "<td><a class=\"section_header_anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
                  << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
-                 << "<td>" << sh.m_address << "</td>";
-
-        if ( sh.m_type == SectionType::Group )
-        {
-            html_out << "<td><a href=\"#group-section-at-" << sh.m_offset << "\">" << sh.m_offset << "</a></td>";
-        }
-        else
-        {
-            html_out << "<td>" << sh.m_offset << "</td>";
-        }
-
-        html_out << "<td>" << sh.m_size << "</td>"
+                 << "<td>" << sh.m_address << "</td>"
+                 << "<td><a href=\"#section-" << i << "\">" << sh.m_offset << "</a></td>"
+                 << "<td>" << sh.m_size << "</td>"
                  << "<td>" << sh.m_asso_idx << "</td>"
                  << "<td>" << sh.m_info << "</td>"
                  << "<td>" << sh.m_addr_align << "</td>"
@@ -222,29 +194,13 @@ Section headers:<br>
     }
     html_out << "</tbody></table>";
 
-    uint64_t symtab_offset = m_symtab_header->m_offset;
-    uint64_t symtab_elem_cnt = m_symtab_header->m_size / 24;
-    ASSERT( symtab_elem_cnt != 0 );
-    for ( uint64_t i = 0; i < symtab_elem_cnt; ++i )
-    {
-        Symbol s( *this, symtab_offset + 24 * i );
-        html_out << "Symbol[ " << i << " ]<br>";
-        html_out << "  - name = " << s.m_name << "<br>";
-        html_out << "  - bind = " << s.m_binding << "<br>";
-        html_out << "  - type = " << s.m_type << "<br>";
-        html_out << "  - visibility = " << s.m_visibility << "<br>";
-        html_out << "  - section idx = " << s.m_section_idx << "<br>";
-        html_out << "  - value = " << s.m_value << "<br>";
-        html_out << "  - size = " << s.m_size << "<br>";
-    }
-
     auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
     {
         ASSERT( size % 4 == 0 );
 
         ASSERT( this->input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
 
-        html_out << "<a name=\"group-section-at-" << offset << "\"></a>GROUP section at " << offset << " with size " << size << "<br>"
+        html_out << "GROUP section at " << offset << " with size " << size << "<br>"
                  << "    - flags: GRP_COMDAT<br>";
 
         uint64_t it = offset + 4;
@@ -256,18 +212,37 @@ Section headers:<br>
         }
     };
 
-    for ( size_t i = 0; i < m_section_headers.size(); ++i )
+    for ( size_t i = 1; i < m_section_headers.size(); ++i )
     {
         const SectionHeader &sh = m_section_headers[ i ];
+
+        html_out << "<a name=\"section-" << i << "\"><h2>Section " << i << " ( type: " << sh.m_type << ", offset: " << sh.m_offset << ", size: " << sh.m_size << " )</h2></a>";
 
         if ( sh.m_type == SectionType::Group )
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
+            continue;
+        }
+
+        if ( sh.m_type == SectionType::SymbolTable )
+        {
+            ASSERT( sh.m_ent_size == 24 );
+
+            std::vector< Symbol > symbols;
+            symbols.reserve( sh.m_size / sh.m_ent_size );
+
+            for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
+            {
+                symbols.emplace_back( *this, sh.m_offset + 24 * i );
+            }
+
+            RenderSymbolTable( html_out, symbols );
         }
 
         if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
         {
             DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+            continue;
         }
 
         if ( sh.m_type == SectionType::RelocationEntries )
@@ -275,8 +250,7 @@ Section headers:<br>
             ASSERT( sh.m_ent_size == 24 );
             ASSERT( sh.m_size % 24 == 0 );
 
-            html_out << "Relocation entries at: " << sh.m_offset << "<br/>";
-            html_out << "<table><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+            html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
 
             for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
             {
@@ -284,7 +258,7 @@ Section headers:<br>
 
                 uint64_t offset = input.U64At( ent_offset + 0x00 );
                 uint32_t sym    = input.U32At( ent_offset + 0x08 );
-                uint32_t type   = input.U32At( ent_offset + 0x0c );
+                auto type       = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x0c ) );
                 int64_t addend  = input.U64At( ent_offset + 0x10 );
 
                 html_out << "<tr>"
@@ -296,12 +270,13 @@ Section headers:<br>
                          << "</tr>";
             }
             html_out << "</table>";
+            continue;
         }
 
         if ( sh.m_type == SectionType::StringTable )
         {
-            html_out << "String table at: " << sh.m_offset << "<br/>";
-            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+            RenderAsStringTable( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
+            continue;
         }
 
         if ( sh.m_type == SectionType::ProgramData )
@@ -327,8 +302,10 @@ Section headers:<br>
             {
                 DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
             }
+            continue;
         }
 
+        std::cerr << "<script>console.log( 'unknown section' );</script>\n";
     }
 
 
