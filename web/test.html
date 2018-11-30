@@ -4,9 +4,21 @@
     <script src="./object_explorer.js"></script>
   </head>
   <body>
-    <div id="drop-area" style="background-color: #cccccc; height: 200px;">Drop your file here</div>
+    <div id="drop-area" style="background-color: #dddddd; height: 200px;     display: flex; justify-content: center; align-items: center;" >
+      <div style="font-weight: bold; font-size: 3em;">
+        Drop your file here
+      </div>
+    </div>
+    <img id="hello-object-image" src="./hello.o.gif" draggable="true"></img>
+    <div style="font-weight: bold; font-size: 3em; padding-left: 20px;">
+      &#x2191; or use the example
+    </div>
 
     <script>
+var exampleObjectFile = new Uint8Array([
+EMBED_FILE_HERE
+]);
+
 function passFileToEmscripten( file ) {
   return new Promise( (resolve, reject) => {
     var arrayBuffer;
@@ -23,17 +35,28 @@ function passFileToEmscripten( file ) {
   } );
 }
 
-
-
 document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
   ev.stopPropagation();
   ev.preventDefault();
 });
 
+document.getElementById( 'hello-object-image' ).addEventListener( 'dragstart', ev => {
+  console.log( 'Drag starwt called, setting target id: ', ev.target.id );
+  ev.dataTransfer.setData( 'object-id', ev.target.id );
+});
+
 document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
   ev.stopPropagation();
   ev.preventDefault();
-  window.ev = ev;
+
+  if ( ev.dataTransfer.getData( 'object-id' ) == 'hello-object-image' ) {
+    emAddr = allocate( exampleObjectFile,  'i8', ALLOC_NORMAL );
+    var htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, exampleObjectFile.length] );
+    document.open();
+    document.write( htmlContents );
+    document.close();
+    return;
+  }
 
   if ( ev.dataTransfer.items.length != 1 ) {
     console.error( 'Can drop one file only' );
