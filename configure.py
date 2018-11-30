@@ -42,8 +42,18 @@ rule emcc_nasm_compile
 rule emcc_link
     command = $emcc -s "EXPORTED_FUNCTIONS=['_run_example', '_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 
-build out/web/test.html: run_cp web/test.html
 build out/web/hello.o.gif: run_cp web/hello.o.gif
+
+build out/src/hello.o: compile src/hello.cpp
+
+rule run_xxd
+    command = xxd -i < $in > $out
+build out/gen/hello.xxd: run_xxd out/src/hello.o
+
+rule embed_hello_file
+    command = sed -e '/EMBED_FILE_HERE/{r out/gen/hello.xxd' -e 'd}' $in > $out
+
+build out/web/test.html: embed_hello_file web/test.html | out/gen/hello.xxd
 '''
 
 nasm_sources = [

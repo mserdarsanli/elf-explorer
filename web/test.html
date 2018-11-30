@@ -8,6 +8,10 @@
     <img id="hello-object-image" src="./hello.o.gif" draggable="true"></img>
 
     <script>
+var exampleObjectFile = new Uint8Array([
+EMBED_FILE_HERE
+]);
+
 function passFileToEmscripten( file ) {
   return new Promise( (resolve, reject) => {
     var arrayBuffer;
@@ -39,7 +43,8 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
   ev.preventDefault();
 
   if ( ev.dataTransfer.getData( 'object-id' ) == 'hello-object-image' ) {
-    var htmlContents = `Data for hello.o`;
+    emAddr = allocate( exampleObjectFile,  'i8', ALLOC_NORMAL );
+    var htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, exampleObjectFile.length] );
     document.open();
     document.write( htmlContents );
     document.close();
