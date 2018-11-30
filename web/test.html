@@ -4,8 +4,15 @@
     <script src="./object_explorer.js"></script>
   </head>
   <body>
-    <div id="drop-area" style="background-color: #cccccc; height: 200px;">Drop your file here</div>
+    <div id="drop-area" style="background-color: #dddddd; height: 200px;     display: flex; justify-content: center; align-items: center;" >
+      <div style="font-weight: bold; font-size: 3em;">
+        Drop your file here
+      </div>
+    </div>
     <img id="hello-object-image" src="./hello.o.gif" draggable="true"></img>
+    <div style="font-weight: bold; font-size: 3em; padding-left: 20px;">
+      &#x2191; or use the example
+    </div>
 
     <script>
 var exampleObjectFile = new Uint8Array([
