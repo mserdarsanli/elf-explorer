@@ -56,6 +56,9 @@ document.getElementById( 'hello-object-image' ).addEventListener( 'dragstart', e
 document.getElementById( 'hello-object-image' ).addEventListener( 'click', ev => {
   useExampleObject();
 });
+document.getElementById( 'hello-object-image' ).addEventListener( 'touchend', ev => {
+  useExampleObject();
+});
 
 document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
   ev.stopPropagation();
