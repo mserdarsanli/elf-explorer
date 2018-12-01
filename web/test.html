@@ -35,6 +35,10 @@ function passFileToEmscripten( file ) {
   } );
 }
 
+function replacePageWith( htmlContents ) {
+  document.getElementsByTagName( 'html' )[0].innerHTML = htmlContents;
+}
+
 document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
   ev.stopPropagation();
   ev.preventDefault();
@@ -51,10 +55,8 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
 
   if ( ev.dataTransfer.getData( 'object-id' ) == 'hello-object-image' ) {
     emAddr = allocate( exampleObjectFile,  'i8', ALLOC_NORMAL );
-    var htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, exampleObjectFile.length] );
-    document.open();
-    document.write( htmlContents );
-    document.close();
+    htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, exampleObjectFile.length] );
+    replacePageWith( htmlContents );
     return;
   }
 
@@ -72,9 +74,7 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
 
   passFileToEmscripten( item.getAsFile() ).then( ( [addr, len] ) => {
     var htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [addr, len] );
-    document.open();
-    document.write( htmlContents );
-    document.close();
+    replacePageWith( htmlContents );
   } );
 
 });
