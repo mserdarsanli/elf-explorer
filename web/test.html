@@ -39,14 +39,22 @@ function replacePageWith( htmlContents ) {
   document.getElementsByTagName( 'html' )[0].innerHTML = htmlContents;
 }
 
+function useExampleObject() {
+  emAddr = allocate( exampleObjectFile,  'i8', ALLOC_NORMAL );
+  htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, exampleObjectFile.length] );
+  replacePageWith( htmlContents );
+}
+
 document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
   ev.stopPropagation();
   ev.preventDefault();
 });
 
 document.getElementById( 'hello-object-image' ).addEventListener( 'dragstart', ev => {
-  console.log( 'Drag starwt called, setting target id: ', ev.target.id );
   ev.dataTransfer.setData( 'object-id', ev.target.id );
+});
+document.getElementById( 'hello-object-image' ).addEventListener( 'click', ev => {
+  useExampleObject();
 });
 
 document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
@@ -54,9 +62,7 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
   ev.preventDefault();
 
   if ( ev.dataTransfer.getData( 'object-id' ) == 'hello-object-image' ) {
-    emAddr = allocate( exampleObjectFile,  'i8', ALLOC_NORMAL );
-    htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, exampleObjectFile.length] );
-    replacePageWith( htmlContents );
+    useExampleObject();
     return;
   }
 
