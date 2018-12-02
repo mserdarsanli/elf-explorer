@@ -31,9 +31,9 @@ Enums = [
     Enum( name = 'SymbolBinding',
         int_type = 'uint8_t',
         values = [
-            ( 'Local', 0 ),
-            ( 'Global', 1 ),
-            ( 'Weak', 2 ),
+            ( 'STB_LOCAL',  0, 'Local symbol' ),
+            ( 'STB_GLOBAL', 1, 'Global symbol' ),
+            ( 'STB_WEAK',   2, 'Weak symbol' ),
         ],
     ),
     Enum( name = 'SymbolType',
