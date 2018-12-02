@@ -2,6 +2,25 @@
 
 #include <sstream>
 
+#include <cxxabi.h>
+
+static std::string demangle( const std::string &mangled_name )
+{
+    int status;
+    char *demangled_ = ::__cxxabiv1::__cxa_demangle( mangled_name.c_str(), nullptr, nullptr, &status );
+
+    if ( status != 0 )
+    {
+        std::cerr << "Demangling failed for name: " << mangled_name << ", status: " << status << "\n";
+        return mangled_name;
+    }
+
+    std::string demangled = demangled_;
+    free( demangled_ );
+    return demangled;
+}
+
+
 void RenderAsStringTable( std::ostream &html_out, std::string_view s )
 {
     if ( s.size() == 0 )
@@ -77,7 +96,7 @@ void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &sym
     {
         const Symbol &s = symbols[ i ];
         html_out << "<td>" << i << "</td>"
-                 << "<td>" << s.m_name << "</td>"
+                 << "<td>" << escape( demangle( s.m_name ) ) << "</td>"
                  << "<td>" << s.m_binding << "</td>"
                  << "<td>" << s.m_type << "</td>"
                  << "<td>" << s.m_visibility << "</td>"
