@@ -52,10 +52,10 @@ Enums = [
     Enum( name = 'SymbolVisibility',
         int_type = 'uint8_t',
         values = [
-            ( 'Default', 0 ),
-            ( 'Internal', 1 ),
-            ( 'Hidden', 2 ),
-            ( 'Protected', 3 ),
+            ( 'STV_DEFAULT',   0, 'Default symbol visibility rules' ),
+            ( 'STV_INTERNAL',  1, 'Processor specific hidden class' ),
+            ( 'STV_HIDDEN',    2, 'Sym unavailable in other modules' ),
+            ( 'STV_PROTECTED', 3, 'Not preemptible, not exported' ),
         ],
     ),
     # see /usr/include/elf.h for details..
