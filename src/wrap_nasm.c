@@ -11,23 +11,23 @@ static void output_ins(uint64_t offset, uint8_t *data, int datalen, char *insn, 
     char *out = out_buf;
     *out = 0;
 
-    const int BPL = 8; /* bytes per line of hex dump */
+    const int bytes_per_line = 15; // Max x64 instruction size??
     int bytes;
     out += sprintf( out, "%08"PRIX64"  ", offset);
 
     bytes = 0;
-    while (datalen > 0 && bytes < BPL) {
-        out += sprintf( out, "%02X", *data++);
+    while (datalen > 0 && bytes < bytes_per_line) {
+        out += sprintf( out, "%02X ", *data++);
         bytes++;
         datalen--;
     }
 
-    out += sprintf(out, "%*s%s\n", (BPL + 1 - bytes) * 2, "", insn);
+    out += sprintf(out, "%*s%s\n", (bytes_per_line + 1 - bytes) * 3, "", insn);
 
     while (datalen > 0) {
         out += sprintf(out, "         -");
         bytes = 0;
-        while (datalen > 0 && bytes < BPL) {
+        while (datalen > 0 && bytes < bytes_per_line) {
             out += sprintf(out, "%02X", *data++);
             bytes++;
             datalen--;
