@@ -148,51 +148,8 @@ void ELF_File::render_html_into( std::ostream &html_out )
   <body>
 )";
 
-    html_out << R"(
-<h2>Section Headers</h2>
-<table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
-  <thead>
-    <tr id="section-headers-header-row">
-      <th>Section Header</th>
-      <th width="200">Name</th>
-      <th>Type</th>
-      <th>Attrs</th>
-      <th>Address</th>
-      <th>Offset</th>
-      <th>Size</th>
-      <th>Asso Idx</th>
-      <th>Info</th>
-      <th>Addr Align</th>
-      <th>Ent Size</th>
-    </tr>
-  </thead>
-  <tbody>
-)";
-
-    for ( size_t i = 0; i < m_section_headers.size(); ++i )
-    {
-        const SectionHeader &sh = m_section_headers[ i ];
-
-        if ( i == 0 )
-        {
-            continue;
-        }
-
-        html_out << "<tr>"
-                 << "<td><a class=\"section_header_anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
-                 << "<td>" << escape( sh.m_name ) << "</td>"
-                 << "<td>" << sh.m_type << "</td>"
-                 << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
-                 << "<td>" << sh.m_address << "</td>"
-                 << "<td><a href=\"#section-" << i << "\">" << sh.m_offset << "</a></td>"
-                 << "<td>" << sh.m_size << "</td>"
-                 << "<td>" << sh.m_asso_idx << "</td>"
-                 << "<td>" << sh.m_info << "</td>"
-                 << "<td>" << sh.m_addr_align << "</td>"
-                 << "<td>" << sh.m_ent_size << "</td>"
-                 << "</tr>";
-    }
-    html_out << "</tbody></table>";
+    html_out << "<h2>Section Headers</h2>";
+    RenderSectionHeaders( html_out, m_section_headers );
 
     auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
     {
@@ -216,15 +173,15 @@ void ELF_File::render_html_into( std::ostream &html_out )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
-        html_out << "<a name=\"section-" << i << "\"><h2>Section " << i << " ( type: " << sh.m_type << ", offset: " << sh.m_offset << ", size: " << sh.m_size << " )</h2></a>";
+        RenderSectionTitle( html_out, i, sh );
 
-        if ( sh.m_type == SectionType::Group )
+        if ( sh.m_type == SectionType::SHT_GROUP )
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
             continue;
         }
 
-        if ( sh.m_type == SectionType::SymbolTable )
+        if ( sh.m_type == SectionType::SHT_SYMTAB )
         {
             ASSERT( sh.m_ent_size == 24 );
 
@@ -239,13 +196,13 @@ void ELF_File::render_html_into( std::ostream &html_out )
             RenderSymbolTable( html_out, symbols );
         }
 
-        if ( sh.m_type == SectionType::Nobits || sh.m_type == SectionType::Constructors )
+        if ( sh.m_type == SectionType::SHT_NOBITS || sh.m_type == SectionType::SHT_INIT_ARRAY )
         {
             DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
             continue;
         }
 
-        if ( sh.m_type == SectionType::RelocationEntries )
+        if ( sh.m_type == SectionType::SHT_RELA )
         {
             ASSERT( sh.m_ent_size == 24 );
             ASSERT( sh.m_size % 24 == 0 );
@@ -273,13 +230,13 @@ void ELF_File::render_html_into( std::ostream &html_out )
             continue;
         }
 
-        if ( sh.m_type == SectionType::StringTable )
+        if ( sh.m_type == SectionType::SHT_STRTAB )
         {
             RenderAsStringTable( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
             continue;
         }
 
-        if ( sh.m_type == SectionType::ProgramData )
+        if ( sh.m_type == SectionType::SHT_PROGBITS )
         {
             if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
             {
