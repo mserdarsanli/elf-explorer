@@ -101,6 +101,8 @@ Enums = [
             ( 'R_X86_64_TLSDESC',         36, 'TLS descriptor.' ),
             ( 'R_X86_64_IRELATIVE',       37, 'Adjust indirectly by program base' ),
             ( 'R_X86_64_RELATIVE64',      38, '64-bit adjust by program base' ),
+            ( 'R_X86_64_PC32_BND',        39, 'Reserved' ),
+            ( 'R_X86_64_PLT32_BND',       40, 'Reserved' ),
             ( 'R_X86_64_GOTPCRELX',       41, 'Load from 32 bit signed pc relative offset to GOT entry without REX prefix, relaxable.' ),
             ( 'R_X86_64_REX_GOTPCRELX',   42, 'Load from 32 bit signed pc relative offset to GOT entry with REX prefix, relaxable.' ),
             ( 'R_X86_64_NUM',             43 ),
