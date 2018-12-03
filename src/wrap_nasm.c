@@ -44,7 +44,7 @@ void DisasmExecutableSection( const unsigned char *object_data, uint64_t size, v
     int outbuf_size = 2000000;
     char *outbuf = malloc( outbuf_size );
 
-    for ( uint64_t offset = 0; offset < size; ++offset )
+    for ( uint64_t offset = 0; offset < size; )
     {
         int32_t lendis = disasm( object_data + offset, INSN_MAX, outbuf, outbuf_size, 64, offset, false, &prefer);
         output_ins( offset, object_data + offset, lendis, outbuf, output_callback, cb_data );
