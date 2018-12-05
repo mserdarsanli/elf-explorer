@@ -12,7 +12,7 @@ function addPopup( ev ) {
     // Is there a better way to do this?
     ev.stopPropagation();
   } );
-  d1.innerHTML = '<b>SHT_RELA:</b> Relocation entries with addends';
+  d1.innerHTML = '<div style="text-align: center; font-weight: bold; font-size: large;">SHT_RELA</div><p>Relocation entries with addends</p>';
   d1.style.position = 'absolute';
   d1.style.width = '300px';
   d1.style.top = '0%';
@@ -22,13 +22,18 @@ function addPopup( ev ) {
   d1.style.border = '1px solid black';
   d1.style.padding = '5px';
 
-  a = document.createElement( 'a' );
-  a.innerText = '[X]';
+  a = document.createElement( 'span' );
+  a.innerText = 'X';
+  a.style.fontWeight = 'bold';
+  a.style.backgroundColor = '#dddddd';
   a.addEventListener( 'click', function( ev ) {
     ev.stopPropagation();
-    ev.target.parentNode.remove();
+    ev.target.parentNode.parentNode.remove();
   } );
-  d1.appendChild( a );
+  a2 = document.createElement( 'div' );
+  a2.style.textAlign = 'right';
+  a2.appendChild( a );
+  d1.insertBefore( a2, d1.childNodes[0] );
 
   tip = document.createElement( 'div' );
   tip.style.border = '10px solid transparent';
