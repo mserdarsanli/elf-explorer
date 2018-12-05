@@ -17,8 +17,10 @@ function addPopup( ev ) {
   d1.style.width = '300px';
   d1.style.top = '0%';
   d1.style.left = '50%';
-  d1.style.transform = 'translate(-50%, -100%)';
-  d1.style.backgroundColor = '#cccccc';
+  d1.style.transform = 'translate(-50%, calc( -100% - 10px ) )';
+  d1.style.backgroundColor = '#eeeeee';
+  d1.style.border = '1px solid black';
+  d1.style.padding = '5px';
 
   a = document.createElement( 'a' );
   a.innerText = '[X]';
@@ -27,6 +29,16 @@ function addPopup( ev ) {
     ev.target.parentNode.remove();
   } );
   d1.appendChild( a );
+
+  tip = document.createElement( 'div' );
+  tip.style.border = '10px solid transparent';
+  tip.style.width = '0px';
+  tip.style.borderTopColor = 'black';
+  tip.style.position = 'absolute';
+  tip.style.top = '100%';
+  tip.style.left = '50%';
+  tip.style.transform = 'translate( -50%, 0% )';
+  d1.appendChild( tip );
 
   ev.target.appendChild( d1 );
 }
