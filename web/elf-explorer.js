@@ -71,7 +71,24 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
 
 });
 
-function addPopup( ev ) {
+
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+ }
+
+
+
+function addPopup( ev, enum_name ) {
+
+  let innerHTML = `<div style="text-align: center; font-weight: bold; font-size: large;">${enum_name}</div><p>${ escapeHtml( enum_info[ enum_name ] ) }</p>`;
+
+
   ev.stopPropagation();
   console.log( 'addpopup called with event: ', ev );
 
@@ -82,7 +99,7 @@ function addPopup( ev ) {
     // Is there a better way to do this?
     ev.stopPropagation();
   } );
-  d1.innerHTML = '<div style="text-align: center; font-weight: bold; font-size: large;">SHT_RELA</div><p>Relocation entries with addends</p>';
+  d1.innerHTML = innerHTML;
   d1.classList.add( 'popup' );
 
   a = document.createElement( 'span' );

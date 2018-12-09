@@ -16,13 +16,15 @@ rule compile
 rule link
     command = $cxx $in -o $out
 
-rule run_python
-    command = python3 $in > $out
-
 rule run_cp
     command = cp $in $out
 
-build out/gen/enums.hpp: run_python src/gen_enums.py
+rule run_python
+    command = python3 $in
+
+build out/gen/enums.hpp out/gen/enums.js: run_python src/gen_enums.py
+
+build out/web/enums.js: run_cp out/gen/enums.js
 
 rule nasm_compile
     depfile = $out.d

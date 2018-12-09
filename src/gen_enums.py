@@ -1,6 +1,7 @@
 #! /usr/bin/python3
 
 import collections
+import html
 
 Enum = collections.namedtuple( 'Enum', [ 'name', 'int_type', 'values' ] )
 
@@ -110,34 +111,53 @@ Enums = [
     )
 ]
 
-out = []
-out.append( '#include <iostream>' )
-out.append( '' )
-out.append( 'std::string escape( const std::string &s );' )
-out.append( '' )
+def gen_enums_hpp():
+    out = []
+    out.append( '#include <iostream>' )
+    out.append( '' )
+    out.append( 'std::string escape( const std::string &s );' )
+    out.append( '' )
 
-for e in Enums:
-    out.append( f"enum class {e.name} : {e.int_type}" )
-    out.append( "{" )
-    for v in e.values:
-        out.append( f"    {v[0]} = {v[1]}," )
-    out.append( "};" )
-    out.append( "" )
-    out.append( "inline" )
-    out.append( f"std::ostream& operator<<( std::ostream &out, {e.name} e )" )
-    out.append( "{" )
-    out.append( "    switch( e )" )
-    out.append( "    {" )
-    for v in e.values:
-        out.append( f"    case {e.name}::{v[0]}:" )
-        if len( v ) == 2:
-            out.append( f"        out << \"{v[0]}\";" )
-        else:
-            out.append( f"        out << \"<span onclick=\\\"javascript:addPopup(event);\\\">{v[0]}</span>\";" )
-        out.append( f"        return out;" )
-    out.append( "    }" )
-    out.append( "    out << \"\\033[31mUnknown( \" << static_cast< int >( e ) << \" )\\033[0m\";" )
-    out.append( "    return out;" )
-    out.append( "}" )
+    for e in Enums:
+        out.append( f"enum class {e.name} : {e.int_type}" )
+        out.append( "{" )
+        for v in e.values:
+            out.append( f"    {v[0]} = {v[1]}," )
+        out.append( "};" )
+        out.append( "" )
+        out.append( "inline" )
+        out.append( f"std::ostream& operator<<( std::ostream &out, {e.name} e )" )
+        out.append( "{" )
+        out.append( "    switch( e )" )
+        out.append( "    {" )
+        for v in e.values:
+            out.append( f"    case {e.name}::{v[0]}:" )
+            if len( v ) == 2:
+                out.append( f"        out << \"{v[0]}\";" )
+            else:
+                out.append( f"        out << \"<span onclick=\\\"javascript:addPopup(event, '{v[0]}' );\\\">{v[0]}</span>\";" )
+            out.append( f"        return out;" )
+        out.append( "    }" )
+        out.append( "    out << \"\\033[31mUnknown( \" << static_cast< int >( e ) << \" )\\033[0m\";" )
+        out.append( "    return out;" )
+        out.append( "}" )
 
-print( '\n'.join( out ) )
+    with open( 'out/gen/enums.hpp', 'w' ) as f:
+        f.write( '\n'.join( out ) + '\n' )
+
+def gen_enums_js():
+    with open( 'out/gen/enums.js', 'w' ) as f:
+        f.write( 'let enum_info = {\n' )
+        for e in Enums:
+            f.write( f"\n" )
+            f.write( f"    // Enum values for {e.name}\n" )
+            f.write( f"\n" )
+            for v in e.values:
+                if len( v ) > 2:
+                    f.write( f"    {v[0]}: \"{v[2]}\",\n" )
+                else:
+                    f.write( f"    {v[0]}: \"NO_DATA\",\n" )
+        f.write( '};\n' )
+
+gen_enums_hpp()
+gen_enums_js()
