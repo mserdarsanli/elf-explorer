@@ -44,6 +44,7 @@ rule emcc_link
 
 build out/web/hello.o.gif: run_cp web/hello.o.gif
 build out/web/style.css: run_cp web/style.css
+build out/web/test.html: run_cp web/test.html
 
 build out/src/hello.o: compile src/hello.cpp
 
@@ -54,7 +55,7 @@ build out/gen/hello.xxd: run_xxd out/src/hello.o
 rule embed_hello_file
     command = sed -e '/EMBED_FILE_HERE/{r out/gen/hello.xxd' -e 'd}' $in > $out
 
-build out/web/test.html: embed_hello_file web/test.html | out/gen/hello.xxd
+build out/web/elf-explorer.js: embed_hello_file web/elf-explorer.js | out/gen/hello.xxd
 '''
 
 nasm_sources = [
