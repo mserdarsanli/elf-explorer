@@ -71,8 +71,6 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
 
 });
 
-
-
 function addPopup( ev ) {
   ev.stopPropagation();
   console.log( 'addpopup called with event: ', ev );
@@ -104,8 +102,4 @@ function addPopup( ev ) {
   d1.appendChild( tip );
 
   ev.target.appendChild( d1 );
-}
-
-function testAddPopup() {
-  document.getElementsByTagName( 'abbr' )[4].addEventListener( 'click', addPopup );
 }

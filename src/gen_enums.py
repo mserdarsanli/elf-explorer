@@ -133,7 +133,7 @@ for e in Enums:
         if len( v ) == 2:
             out.append( f"        out << \"{v[0]}\";" )
         else:
-            out.append( f"        out << \"<abbr title=\\\"{v[2]}\\\">{v[0]}</abbr>\";" )
+            out.append( f"        out << \"<span onclick=\\\"javascript:addPopup(event);\\\">{v[0]}</span>\";" )
         out.append( f"        return out;" )
     out.append( "    }" )
     out.append( "    out << \"\\033[31mUnknown( \" << static_cast< int >( e ) << \" )\\033[0m\";" )
