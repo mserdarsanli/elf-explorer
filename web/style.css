@@ -1,0 +1,25 @@
+:root {
+    --section-header-table-thead-height: 2em;
+    --symbols-table-thead-height: 2em;
+}
+
+#section-headers-header-row {
+    height: var( --section-header-table-thead-height );
+    background-color: #eee;
+}
+
+td {
+    vertical-align: top;
+}
+
+.section_header_anchor {
+    display: block;
+    position: relative;
+    top: calc( var( --section-header-table-thead-height ) * -1 );
+    visibility: hidden;
+}
+
+#symbols-header-row {
+    height: var( --symbols-table-thead-height );
+    background-color: #eee;
+}

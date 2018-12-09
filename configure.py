@@ -43,6 +43,7 @@ rule emcc_link
     command = $emcc -s "EXPORTED_FUNCTIONS=['_run_example', '_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 
 build out/web/hello.o.gif: run_cp web/hello.o.gif
+build out/web/style.css: run_cp web/style.css
 
 build out/src/hello.o: compile src/hello.cpp
 

@@ -117,33 +117,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
   <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
-    <style>
-      :root {
-        --section-header-table-thead-height: 2em;
-        --symbols-table-thead-height: 2em;
-      }
-
-      #section-headers-header-row {
-        height: var( --section-header-table-thead-height );
-        background-color: #eee;
-      }
-
-      td {
-        vertical-align: top;
-      }
-
-      .section_header_anchor {
-        display: block;
-        position: relative;
-        top: calc( var( --section-header-table-thead-height ) * -1 );
-        visibility: hidden;
-      }
-
-      #symbols-header-row {
-        height: var( --symbols-table-thead-height );
-        background-color: #eee;
-      }
-    </style>
+    <link rel="stylesheet" type="text/css" href="style.css">
   </head>
   <body>
 )";
