@@ -23,3 +23,30 @@ td {
     height: var( --symbols-table-thead-height );
     background-color: #eee;
 }
+
+
+.popup {
+    position: absolute;
+    width: 300px;
+    top: 0%;
+    left: 50%;
+    transform: translate(-50%, calc( -100% - 10px ) );
+    background-color: #eeeeee;
+    border: 1px solid black;
+    padding: 5px;
+}
+
+.popup-close-button {
+    font-weight: bold;
+    background-color: #dddddd;
+}
+
+.popup-tip {
+    border: 10px solid transparent;
+    width: 0px;
+    border-top-color: black;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translate( -50%, 0% );
+}

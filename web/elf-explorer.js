@@ -85,19 +85,11 @@ function addPopup( ev ) {
     ev.stopPropagation();
   } );
   d1.innerHTML = '<div style="text-align: center; font-weight: bold; font-size: large;">SHT_RELA</div><p>Relocation entries with addends</p>';
-  d1.style.position = 'absolute';
-  d1.style.width = '300px';
-  d1.style.top = '0%';
-  d1.style.left = '50%';
-  d1.style.transform = 'translate(-50%, calc( -100% - 10px ) )';
-  d1.style.backgroundColor = '#eeeeee';
-  d1.style.border = '1px solid black';
-  d1.style.padding = '5px';
+  d1.classList.add( 'popup' );
 
   a = document.createElement( 'span' );
   a.innerText = 'X';
-  a.style.fontWeight = 'bold';
-  a.style.backgroundColor = '#dddddd';
+  a.classList.add( 'popup-close-button' );
   a.addEventListener( 'click', function( ev ) {
     ev.stopPropagation();
     ev.target.parentNode.parentNode.remove();
@@ -108,13 +100,7 @@ function addPopup( ev ) {
   d1.insertBefore( a2, d1.childNodes[0] );
 
   tip = document.createElement( 'div' );
-  tip.style.border = '10px solid transparent';
-  tip.style.width = '0px';
-  tip.style.borderTopColor = 'black';
-  tip.style.position = 'absolute';
-  tip.style.top = '100%';
-  tip.style.left = '50%';
-  tip.style.transform = 'translate( -50%, 0% )';
+  tip.classList.add( 'popup-tip' );
   d1.appendChild( tip );
 
   ev.target.appendChild( d1 );
