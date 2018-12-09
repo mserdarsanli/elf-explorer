@@ -1,5 +1,8 @@
 #include <iostream>
 
+#include <cmath>
+#include <functional>
+
 struct Foo
 {
     Foo()
@@ -31,6 +34,8 @@ struct V
         std::cout << sizeof(T) << "\n";
     }
 };
+
+std::function< float( float ) > sqrt_fn = sqrtf;
 
 int main()
 {
