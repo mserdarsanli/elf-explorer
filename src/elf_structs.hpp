@@ -135,9 +135,16 @@ struct RelocationEntries
     std::vector< RelocationEntry > m_entries;
 };
 
+struct GroupSection
+{
+    uint32_t m_flags;
+    std::vector< uint32_t > m_section_indices;
+};
+
 struct Section
 {
     std::variant< std::monostate
+                , GroupSection
                 , StringTable
                 , SymbolTable
                 , RelocationEntries

@@ -111,6 +111,21 @@ ELF_File::ELF_File( InputBuffer &input_ )
             }
             break;
         }
+        case SectionType::SHT_GROUP:
+        {
+            ASSERT( sh.m_size % 4 == 0 );
+            GroupSection &group = m_sections[ i ].m_var.emplace< GroupSection >();
+
+            group.m_flags = this->input.U32At( sh.m_offset );
+
+            uint64_t it = sh.m_offset + 4;
+            uint64_t end = sh.m_offset + sh.m_size;
+
+            for ( ; it != end; it += 4 )
+            {
+                group.m_section_indices.push_back( this->input.U32At( it ) );
+            }
+        }
         default:
             std::cerr << "Skipping unhandled section of type " << sh.m_type << "\n";
         }
@@ -140,6 +155,19 @@ struct SectionHtmlRenderer
     void operator()( const SymbolTable &symtab )
     {
         RenderSymbolTable( html_out, symtab.m_symbols );
+    }
+
+    void operator()( const GroupSection &group )
+    {
+        ASSERT( group.m_flags == 0x01 ); // GRP_COMDAT ( no other option )
+
+        html_out << "GROUP section<br>"
+                 << "    - flags: GRP_COMDAT<br>";
+
+        for ( uint32_t sec_idx : group.m_section_indices )
+        {
+            html_out << "    - section idx : " << sec_idx << "<br>";
+        }
     }
 
     void operator()( const RelocationEntries &reloc )
@@ -176,24 +204,6 @@ void ELF_File::render_html_into( std::ostream &html_out )
     html_out << "<h2>Section Headers</h2>";
     RenderSectionHeaders( html_out, m_section_headers );
 
-    auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
-    {
-        ASSERT( size % 4 == 0 );
-
-        ASSERT( this->input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
-
-        html_out << "GROUP section at " << offset << " with size " << size << "<br>"
-                 << "    - flags: GRP_COMDAT<br>";
-
-        uint64_t it = offset + 4;
-        uint64_t end = offset + size;
-
-        for ( ; it != end; it += 4 )
-        {
-            html_out << "    - section_header_idx : " << this->input.U32At( it ) << "<br>";
-        }
-    };
-
     for ( size_t i = 1; i < m_section_headers.size(); ++i )
     {
         const SectionHeader &sh = m_section_headers[ i ];
@@ -201,12 +211,6 @@ void ELF_File::render_html_into( std::ostream &html_out )
         RenderSectionTitle( html_out, i, sh );
 
         std::visit( SectionHtmlRenderer( html_out ), m_sections[ i ].m_var );
-
-        if ( sh.m_type == SectionType::SHT_GROUP )
-        {
-            DumpGroupSection( sh.m_offset, sh.m_size );
-            continue;
-        }
 
         if ( sh.m_type == SectionType::SHT_NOBITS || sh.m_type == SectionType::SHT_INIT_ARRAY )
         {
