@@ -100,9 +100,44 @@ ELF_File::ELF_File( InputBuffer &input_ )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
+        // TODO remove this?
         if ( sh.m_name == ".strtab" )
         {
             strtab = StringTable( *this, sh.m_offset, sh.m_size );
+        }
+    }
+
+    // Load actual section data
+    // TODO recursively load dependent sections first
+    m_sections.resize( m_section_headers.size() );
+    for ( size_t i = 1; i < m_section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = m_section_headers[ i ];
+
+        switch ( sh.m_type )
+        {
+        case SectionType::SHT_STRTAB:
+        {
+            m_sections[ i ].m_var = StringTable( *this, sh.m_offset, sh.m_size );
+            break;
+        }
+        case SectionType::SHT_SYMTAB:
+        {
+            ASSERT( sh.m_ent_size == 24 );
+
+            SymbolTable &symtab = m_sections[ i ].m_var.emplace< SymbolTable >();
+
+            symtab.m_symbols.reserve( sh.m_size / sh.m_ent_size );
+
+            for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
+            {
+                symtab.m_symbols.emplace_back( *this, sh.m_offset + 24 * i );
+            }
+
+            break;
+        }
+        default:
+            std::cerr << "Skipping unhandled section of type " << sh.m_type << "\n";
         }
     }
 
@@ -157,17 +192,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
 
         if ( sh.m_type == SectionType::SHT_SYMTAB )
         {
-            ASSERT( sh.m_ent_size == 24 );
-
-            std::vector< Symbol > symbols;
-            symbols.reserve( sh.m_size / sh.m_ent_size );
-
-            for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
-            {
-                symbols.emplace_back( *this, sh.m_offset + 24 * i );
-            }
-
-            RenderSymbolTable( html_out, symbols );
+            RenderSymbolTable( html_out, std::get< SymbolTable >( m_sections[ i ].m_var ).m_symbols );
         }
 
         if ( sh.m_type == SectionType::SHT_NOBITS || sh.m_type == SectionType::SHT_INIT_ARRAY )

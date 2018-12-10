@@ -117,6 +117,19 @@ struct SectionHeader
     uint64_t m_ent_size;
 };
 
+struct SymbolTable
+{
+    std::vector< Symbol > m_symbols;
+};
+
+struct Section
+{
+    std::variant< std::monostate
+                , StringTable
+                , SymbolTable
+    > m_var;
+};
+
 struct ELF_File
 {
     ELF_File( InputBuffer & );
@@ -128,6 +141,8 @@ struct ELF_File
     uint16_t section_header_num_entries;
     uint16_t section_names_header_index;
     std::vector< SectionHeader > m_section_headers;
+
+    std::vector< Section > m_sections;
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;
