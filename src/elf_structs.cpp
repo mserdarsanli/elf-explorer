@@ -164,6 +164,47 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( strtab );
 }
 
+struct SectionHtmlRenderer
+{
+    SectionHtmlRenderer( std::ostream &html_out_ )
+        : html_out( html_out_ )
+    {
+    }
+
+    void operator()( const std::monostate & )
+    {
+        // Do nothing?
+    }
+
+    void operator()( const StringTable &strtab )
+    {
+        RenderAsStringTable( html_out, strtab.m_str );
+    }
+
+    void operator()( const SymbolTable &symtab )
+    {
+        RenderSymbolTable( html_out, symtab.m_symbols );
+    }
+
+    void operator()( const RelocationEntries &reloc )
+    {
+        html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+        for ( size_t entry_idx = 0; entry_idx < reloc.m_entries.size(); ++entry_idx )
+        {
+            html_out << "<tr>"
+                     << "<td>" << entry_idx << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_offset << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_symbol << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_type << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_addend << "</td>"
+                     << "</tr>";
+        }
+        html_out << "</table>";
+    }
+
+    std::ostream &html_out;
+};
+
 void ELF_File::render_html_into( std::ostream &html_out )
 {
     html_out << R"(<!doctype html>
@@ -203,45 +244,17 @@ void ELF_File::render_html_into( std::ostream &html_out )
 
         RenderSectionTitle( html_out, i, sh );
 
+        std::visit( SectionHtmlRenderer( html_out ), m_sections[ i ].m_var );
+
         if ( sh.m_type == SectionType::SHT_GROUP )
         {
             DumpGroupSection( sh.m_offset, sh.m_size );
             continue;
         }
 
-        if ( sh.m_type == SectionType::SHT_SYMTAB )
-        {
-            RenderSymbolTable( html_out, std::get< SymbolTable >( m_sections[ i ].m_var ).m_symbols );
-        }
-
         if ( sh.m_type == SectionType::SHT_NOBITS || sh.m_type == SectionType::SHT_INIT_ARRAY )
         {
             DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
-            continue;
-        }
-
-        if ( sh.m_type == SectionType::SHT_RELA )
-        {
-            html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
-
-            const RelocationEntries &entries = std::get< RelocationEntries >( m_sections[ i ].m_var );
-            for ( size_t entry_idx = 0; entry_idx < entries.m_entries.size(); ++entry_idx )
-            {
-                html_out << "<tr>"
-                         << "<td>" << entry_idx << "</td>"
-                         << "<td>" << entries.m_entries[ entry_idx ].m_offset << "</td>"
-                         << "<td>" << entries.m_entries[ entry_idx ].m_symbol << "</td>"
-                         << "<td>" << entries.m_entries[ entry_idx ].m_type << "</td>"
-                         << "<td>" << entries.m_entries[ entry_idx ].m_addend << "</td>"
-                         << "</tr>";
-            }
-            html_out << "</table>";
-            continue;
-        }
-
-        if ( sh.m_type == SectionType::SHT_STRTAB )
-        {
-            RenderAsStringTable( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
             continue;
         }
 
