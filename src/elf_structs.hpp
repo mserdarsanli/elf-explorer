@@ -122,11 +122,25 @@ struct SymbolTable
     std::vector< Symbol > m_symbols;
 };
 
+struct RelocationEntry
+{
+    uint64_t m_offset;
+    X64RelocationType m_type;
+    uint32_t m_symbol;
+    int64_t m_addend;
+};
+
+struct RelocationEntries
+{
+    std::vector< RelocationEntry > m_entries;
+};
+
 struct Section
 {
     std::variant< std::monostate
                 , StringTable
                 , SymbolTable
+                , RelocationEntries
     > m_var;
 };
 

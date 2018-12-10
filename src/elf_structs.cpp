@@ -136,6 +136,25 @@ ELF_File::ELF_File( InputBuffer &input_ )
 
             break;
         }
+        case SectionType::SHT_RELA:
+        {
+            ASSERT( sh.m_ent_size == 24 );
+            ASSERT( sh.m_size % 24 == 0 );
+
+            RelocationEntries &entries = m_sections[ i ].m_var.emplace< RelocationEntries >();
+            entries.m_entries.resize( sh.m_size / 24 );
+
+            for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
+            {
+                uint64_t ent_offset = sh.m_offset + 24 * i;
+
+                entries.m_entries[ i ].m_offset = input.U64At( ent_offset + 0x00 );
+                entries.m_entries[ i ].m_type   = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x08 ) );
+                entries.m_entries[ i ].m_symbol = input.U32At( ent_offset + 0x0c );
+                entries.m_entries[ i ].m_addend = input.U64At( ent_offset + 0x10 );
+            }
+            break;
+        }
         default:
             std::cerr << "Skipping unhandled section of type " << sh.m_type << "\n";
         }
@@ -203,26 +222,17 @@ void ELF_File::render_html_into( std::ostream &html_out )
 
         if ( sh.m_type == SectionType::SHT_RELA )
         {
-            ASSERT( sh.m_ent_size == 24 );
-            ASSERT( sh.m_size % 24 == 0 );
-
             html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
 
-            for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
+            const RelocationEntries &entries = std::get< RelocationEntries >( m_sections[ i ].m_var );
+            for ( size_t entry_idx = 0; entry_idx < entries.m_entries.size(); ++entry_idx )
             {
-                uint64_t ent_offset = sh.m_offset + 24 * i;
-
-                uint64_t offset = input.U64At( ent_offset + 0x00 );
-                auto type       = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x08 ) );
-                uint32_t sym    = input.U32At( ent_offset + 0x0c );
-                int64_t addend  = input.U64At( ent_offset + 0x10 );
-
                 html_out << "<tr>"
-                         << "<td>" << i << "</td>"
-                         << "<td>" << offset << "</td>"
-                         << "<td>" << sym << "</td>"
-                         << "<td>" << type << "</td>"
-                         << "<td>" << addend << "</td>"
+                         << "<td>" << entry_idx << "</td>"
+                         << "<td>" << entries.m_entries[ entry_idx ].m_offset << "</td>"
+                         << "<td>" << entries.m_entries[ entry_idx ].m_symbol << "</td>"
+                         << "<td>" << entries.m_entries[ entry_idx ].m_type << "</td>"
+                         << "<td>" << entries.m_entries[ entry_idx ].m_addend << "</td>"
                          << "</tr>";
             }
             html_out << "</table>";
