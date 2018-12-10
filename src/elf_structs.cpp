@@ -188,8 +188,8 @@ void ELF_File::render_html_into( std::ostream &html_out )
                 uint64_t ent_offset = sh.m_offset + 24 * i;
 
                 uint64_t offset = input.U64At( ent_offset + 0x00 );
-                uint32_t sym    = input.U32At( ent_offset + 0x08 );
-                auto type       = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x0c ) );
+                auto type       = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x08 ) );
+                uint32_t sym    = input.U32At( ent_offset + 0x0c );
                 int64_t addend  = input.U64At( ent_offset + 0x10 );
 
                 html_out << "<tr>"
