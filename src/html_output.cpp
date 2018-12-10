@@ -169,3 +169,47 @@ void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionHeader &
     html_out << R"(</table>)";
     html_out << R"(</div>)";
 }
+
+void RenderBinaryData( std::ostream &html_out, std::string_view s )
+{
+    if ( s.size() == 0 )
+    {
+        return;
+    }
+
+    const int indent = 4;
+    html_out << "<pre style=\"padding-left: 100px;\">";
+    for ( uint64_t i = 0; i < s.size(); i += 20 )
+    {
+        std::stringstream render_print;
+        std::stringstream render_hex;
+
+        uint64_t j = 0;
+        for ( ; j < 20 && j + i < s.size(); ++j )
+        {
+            auto hex = []( int a ) -> char
+            {
+                if ( a < 10 ) return '0' + a;
+                return a - 10 + 'a';
+            };
+
+            uint8_t c = s[ i + j ];
+            if ( isprint( c ) )
+            {
+                render_print << escape( std::string( 1, c ) );
+            }
+            else
+            {
+                render_print << '.';
+            }
+            render_hex << " " << hex( c / 16 ) << hex( c % 16 );
+        }
+        for ( ; j < 20 ; ++j )
+        {
+            render_print << " ";
+        }
+
+        html_out << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
+    }
+    html_out << "</pre>";
+}

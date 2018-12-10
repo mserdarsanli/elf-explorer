@@ -2,50 +2,6 @@
 #include "html_output.hpp"
 #include "wrap_nasm.h"
 
-static void DumpBinaryData( std::string_view s, std::ostream &html_out )
-{
-    if ( s.size() == 0 )
-    {
-        return;
-    }
-
-    const int indent = 4;
-    html_out << "<pre style=\"padding-left: 100px;\">";
-    for ( uint64_t i = 0; i < s.size(); i += 20 )
-    {
-        std::stringstream render_print;
-        std::stringstream render_hex;
-
-        uint64_t j = 0;
-        for ( ; j < 20 && j + i < s.size(); ++j )
-        {
-            auto hex = []( int a ) -> char
-            {
-                if ( a < 10 ) return '0' + a;
-                return a - 10 + 'a';
-            };
-
-            uint8_t c = s[ i + j ];
-            if ( isprint( c ) )
-            {
-                render_print << escape( std::string( 1, c ) );
-            }
-            else
-            {
-                render_print << '.';
-            }
-            render_hex << " " << hex( c / 16 ) << hex( c % 16 );
-        }
-        for ( ; j < 20 ; ++j )
-        {
-            render_print << " ";
-        }
-
-        html_out << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
-    }
-    html_out << "</pre>";
-}
-
 ELF_File::ELF_File( InputBuffer &input_ )
     : input( input_ )
 {
@@ -254,7 +210,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
 
         if ( sh.m_type == SectionType::SHT_NOBITS || sh.m_type == SectionType::SHT_INIT_ARRAY )
         {
-            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+            RenderBinaryData( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
             continue;
         }
 
@@ -279,7 +235,7 @@ void ELF_File::render_html_into( std::ostream &html_out )
             }
             else
             {
-                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
+                RenderBinaryData( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
             }
             continue;
         }
