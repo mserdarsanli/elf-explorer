@@ -164,7 +164,7 @@ struct SectionHtmlRenderer
 
     void operator()( const std::monostate & )
     {
-        // Do nothing?
+        std::cerr << "<script>console.log( 'unknown section' );</script>\n";
     }
 
     void operator()( const NoBitsSection &s )
@@ -264,8 +264,6 @@ void ELF_File::render_html_into( std::ostream &html_out )
         RenderSectionTitle( html_out, i, sh );
 
         std::visit( SectionHtmlRenderer( html_out ), m_sections[ i ].m_var );
-
-        std::cerr << "<script>console.log( 'unknown section' );</script>\n";
     }
 
 
