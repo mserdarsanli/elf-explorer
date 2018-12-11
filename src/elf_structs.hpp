@@ -175,9 +175,5 @@ struct ELF_File
     static ELF_File LoadFrom( InputBuffer & );
 
     std::vector< SectionHeader > m_section_headers;
-
     std::vector< Section > m_sections;
-
-    std::optional< StringTable > strtab;
-    std::optional< StringTable > shstrtab;
 };
