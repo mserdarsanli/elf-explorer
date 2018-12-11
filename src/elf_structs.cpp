@@ -1,5 +1,16 @@
 #include "elf_structs.hpp"
 
+static StringTable LoadStringTable( InputBuffer &input, uint64_t section_offset, uint64_t size )
+{
+    StringTable res;
+    for ( uint64_t i = 0; i < size; ++i )
+    {
+        (void)input.U8At( section_offset + i ); // Set read
+    }
+    res.m_str.assign( (const char*)input.contents.data() + section_offset, size );
+    return res;
+}
+
 struct ELF_Loader
 {
     ELF_Loader( InputBuffer &input )
@@ -50,7 +61,7 @@ struct ELF_Loader
         uint64_t shstrtab_header_offset = m_section_header_offset + m_section_header_entry_size * m_section_names_header_index;
         uint64_t shstrtab_offset = m_input.U64At( shstrtab_header_offset + 0x18 );
         uint64_t shstrtab_len = m_input.U64At( shstrtab_header_offset + 0x20 );
-        StringTable shstrtab( m_input, shstrtab_offset, shstrtab_len );
+        StringTable shstrtab = LoadStringTable( m_input, shstrtab_offset, shstrtab_len );
 
         m_sections.resize( m_section_header_num_entries );
         for ( int i = 0; i < m_section_header_num_entries; ++i )
@@ -66,7 +77,7 @@ struct ELF_Loader
 
             if ( sh.m_name == ".strtab" )
             {
-                m_strtab = StringTable( m_input, sh.m_offset, sh.m_size );
+                m_strtab = LoadStringTable( m_input, sh.m_offset, sh.m_size );
             }
         }
     }
@@ -94,7 +105,7 @@ struct ELF_Loader
         {
         case SectionType::SHT_STRTAB:
         {
-            m_sections[ idx ].m_var = StringTable( m_input, sh.m_offset, sh.m_size );
+            m_sections[ idx ].m_var = LoadStringTable( m_input, sh.m_offset, sh.m_size );
             break;
         }
         case SectionType::SHT_SYMTAB:
@@ -220,15 +231,6 @@ Symbol::Symbol( InputBuffer &input, StringTable &strtab, uint64_t offset )
     m_section_idx = input.U16At( offset + 6 );
     m_value = input.U64At( offset + 8 );
     m_size = input.U64At( offset + 16 );
-}
-
-StringTable::StringTable( InputBuffer &input, uint64_t section_offset, uint64_t size )
-{
-    for ( uint64_t i = 0; i < size; ++i )
-    {
-        (void)input.U8At( section_offset + i ); // Set read
-    }
-    m_str.assign( (const char*)input.contents.data() + section_offset, size );
 }
 
 std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const

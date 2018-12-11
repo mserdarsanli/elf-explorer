@@ -80,9 +80,6 @@ struct ELF_File;
 
 struct StringTable
 {
-    StringTable() = default;
-
-    StringTable( InputBuffer &input, uint64_t section_offset, uint64_t size );
     std::string_view StringAtOffset( uint64_t string_offset ) const;
 
     std::string m_str;
