@@ -23,7 +23,7 @@ static std::string demangle( const std::string &mangled_name )
 }
 
 
-void RenderAsStringTable( std::ostream &html_out, std::string_view s )
+static void RenderAsStringTable( std::ostream &html_out, std::string_view s )
 {
     if ( s.size() == 0 )
     {
@@ -75,7 +75,7 @@ std::string escape( const std::string &s )
     return res;
 }
 
-void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &symbols )
+static void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &symbols )
 {
     html_out << R"(
 <table id="table-symbols" border="1" cellspacing="0" style="word-break: break-all;">
@@ -110,7 +110,7 @@ void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &sym
     html_out << "</tbody></table>";
 }
 
-void RenderSectionHeaders( std::ostream &html_out,
+static void RenderSectionHeaders( std::ostream &html_out,
                            const std::vector< SectionHeader > &section_headers )
 {
     html_out << R"(
@@ -154,7 +154,7 @@ void RenderSectionHeaders( std::ostream &html_out,
     html_out << "</tbody></table>";
 }
 
-void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionHeader &sh )
+static void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionHeader &sh )
 {
     html_out << R"(<div style="background-color: #eeeeee;">)";
     html_out << R"(<table style="text-align: left;" border="0" cellspacing="0">)";
@@ -172,7 +172,7 @@ void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionHeader &
     html_out << R"(</div>)";
 }
 
-void RenderBinaryData( std::ostream &html_out, std::string_view s )
+static void RenderBinaryData( std::ostream &html_out, std::string_view s )
 {
     if ( s.size() == 0 )
     {
