@@ -117,6 +117,59 @@ struct SectionHeader
     uint64_t m_ent_size;
 };
 
+struct SymbolTable
+{
+    std::vector< Symbol > m_symbols;
+};
+
+struct RelocationEntry
+{
+    uint64_t m_offset;
+    X64RelocationType m_type;
+    uint32_t m_symbol;
+    int64_t m_addend;
+};
+
+struct RelocationEntries
+{
+    std::vector< RelocationEntry > m_entries;
+};
+
+struct GroupSection
+{
+    uint32_t m_flags;
+    std::vector< uint32_t > m_section_indices;
+};
+
+struct NoBitsSection
+{
+    std::string m_data;
+};
+
+struct InitArraySection
+{
+    std::string m_data;
+};
+
+struct ProgBitsSection
+{
+    std::string m_data;
+    bool m_is_executable = false; // TODO this can be used from section header
+};
+
+struct Section
+{
+    std::variant< std::monostate
+                , GroupSection
+                , StringTable
+                , SymbolTable
+                , RelocationEntries
+                , NoBitsSection
+                , InitArraySection
+                , ProgBitsSection
+    > m_var;
+};
+
 struct ELF_File
 {
     ELF_File( InputBuffer & );
@@ -128,6 +181,8 @@ struct ELF_File
     uint16_t section_header_num_entries;
     uint16_t section_names_header_index;
     std::vector< SectionHeader > m_section_headers;
+
+    std::vector< Section > m_sections;
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;

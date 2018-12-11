@@ -2,50 +2,6 @@
 #include "html_output.hpp"
 #include "wrap_nasm.h"
 
-static void DumpBinaryData( std::string_view s, std::ostream &html_out )
-{
-    if ( s.size() == 0 )
-    {
-        return;
-    }
-
-    const int indent = 4;
-    html_out << "<pre style=\"padding-left: 100px;\">";
-    for ( uint64_t i = 0; i < s.size(); i += 20 )
-    {
-        std::stringstream render_print;
-        std::stringstream render_hex;
-
-        uint64_t j = 0;
-        for ( ; j < 20 && j + i < s.size(); ++j )
-        {
-            auto hex = []( int a ) -> char
-            {
-                if ( a < 10 ) return '0' + a;
-                return a - 10 + 'a';
-            };
-
-            uint8_t c = s[ i + j ];
-            if ( isprint( c ) )
-            {
-                render_print << escape( std::string( 1, c ) );
-            }
-            else
-            {
-                render_print << '.';
-            }
-            render_hex << " " << hex( c / 16 ) << hex( c % 16 );
-        }
-        for ( ; j < 20 ; ++j )
-        {
-            render_print << " ";
-        }
-
-        html_out << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
-    }
-    html_out << "</pre>";
-}
-
 ELF_File::ELF_File( InputBuffer &input_ )
     : input( input_ )
 {
@@ -100,15 +56,191 @@ ELF_File::ELF_File( InputBuffer &input_ )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
+        // TODO remove this?
         if ( sh.m_name == ".strtab" )
         {
             strtab = StringTable( *this, sh.m_offset, sh.m_size );
         }
     }
 
+    // Load actual section data
+    // TODO recursively load dependent sections first
+    m_sections.resize( m_section_headers.size() );
+    for ( size_t i = 1; i < m_section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = m_section_headers[ i ];
+
+        switch ( sh.m_type )
+        {
+        case SectionType::SHT_STRTAB:
+        {
+            m_sections[ i ].m_var = StringTable( *this, sh.m_offset, sh.m_size );
+            break;
+        }
+        case SectionType::SHT_SYMTAB:
+        {
+            ASSERT( sh.m_ent_size == 24 );
+
+            SymbolTable &symtab = m_sections[ i ].m_var.emplace< SymbolTable >();
+
+            symtab.m_symbols.reserve( sh.m_size / sh.m_ent_size );
+
+            for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
+            {
+                symtab.m_symbols.emplace_back( *this, sh.m_offset + 24 * i );
+            }
+
+            break;
+        }
+        case SectionType::SHT_RELA:
+        {
+            ASSERT( sh.m_ent_size == 24 );
+            ASSERT( sh.m_size % 24 == 0 );
+
+            RelocationEntries &entries = m_sections[ i ].m_var.emplace< RelocationEntries >();
+            entries.m_entries.resize( sh.m_size / 24 );
+
+            for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
+            {
+                uint64_t ent_offset = sh.m_offset + 24 * i;
+
+                entries.m_entries[ i ].m_offset = input.U64At( ent_offset + 0x00 );
+                entries.m_entries[ i ].m_type   = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x08 ) );
+                entries.m_entries[ i ].m_symbol = input.U32At( ent_offset + 0x0c );
+                entries.m_entries[ i ].m_addend = input.U64At( ent_offset + 0x10 );
+            }
+            break;
+        }
+        case SectionType::SHT_GROUP:
+        {
+            ASSERT( sh.m_size % 4 == 0 );
+            GroupSection &group = m_sections[ i ].m_var.emplace< GroupSection >();
+
+            group.m_flags = this->input.U32At( sh.m_offset );
+
+            uint64_t it = sh.m_offset + 4;
+            uint64_t end = sh.m_offset + sh.m_size;
+
+            for ( ; it != end; it += 4 )
+            {
+                group.m_section_indices.push_back( this->input.U32At( it ) );
+            }
+            break;
+        }
+        case SectionType::SHT_NOBITS:
+        {
+            auto &s = m_sections[ i ].m_var.emplace< NoBitsSection >();
+            s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
+            break;
+        }
+        case SectionType::SHT_INIT_ARRAY:
+        {
+            auto &s = m_sections[ i ].m_var.emplace< InitArraySection >();
+            s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
+            break;
+        }
+        case SectionType::SHT_PROGBITS:
+        {
+            auto &s = m_sections[ i ].m_var.emplace< ProgBitsSection >();
+            s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
+            s.m_is_executable = ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable );
+            break;
+        }
+        default:
+            std::cerr << "Skipping unhandled section of type " << sh.m_type << "\n";
+        }
+    }
+
 
     ASSERT( strtab );
 }
+
+struct SectionHtmlRenderer
+{
+    SectionHtmlRenderer( std::ostream &html_out_ )
+        : html_out( html_out_ )
+    {
+    }
+
+    void operator()( const std::monostate & )
+    {
+        std::cerr << "<script>console.log( 'unknown section' );</script>\n";
+    }
+
+    void operator()( const NoBitsSection &s )
+    {
+        RenderBinaryData( html_out, s.m_data );
+    }
+
+    void operator()( const ProgBitsSection &s )
+    {
+        if ( s.m_is_executable )
+        {
+            std::stringstream disasm_out;
+
+            auto fp = []( const char *ins, void *data )
+            {
+                *static_cast< std::stringstream* >( data ) << ins;
+            };
+
+            html_out << "Disassembly:<br>";
+
+            DisasmExecutableSection( (const unsigned char *)s.m_data.data(), s.m_data.size(), fp, static_cast< void* >( &disasm_out ) );
+
+            html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
+        }
+        else
+        {
+            RenderBinaryData( html_out, s.m_data );
+        }
+    }
+
+    void operator()( const InitArraySection &s )
+    {
+        RenderBinaryData( html_out, s.m_data );
+    }
+
+    void operator()( const StringTable &strtab )
+    {
+        RenderAsStringTable( html_out, strtab.m_str );
+    }
+
+    void operator()( const SymbolTable &symtab )
+    {
+        RenderSymbolTable( html_out, symtab.m_symbols );
+    }
+
+    void operator()( const GroupSection &group )
+    {
+        ASSERT( group.m_flags == 0x01 ); // GRP_COMDAT ( no other option )
+
+        html_out << "GROUP section<br>"
+                 << "    - flags: GRP_COMDAT<br>";
+
+        for ( uint32_t sec_idx : group.m_section_indices )
+        {
+            html_out << "    - section idx : " << sec_idx << "<br>";
+        }
+    }
+
+    void operator()( const RelocationEntries &reloc )
+    {
+        html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+        for ( size_t entry_idx = 0; entry_idx < reloc.m_entries.size(); ++entry_idx )
+        {
+            html_out << "<tr>"
+                     << "<td>" << entry_idx << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_offset << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_symbol << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_type << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_addend << "</td>"
+                     << "</tr>";
+        }
+        html_out << "</table>";
+    }
+
+    std::ostream &html_out;
+};
 
 void ELF_File::render_html_into( std::ostream &html_out )
 {
@@ -125,118 +257,13 @@ void ELF_File::render_html_into( std::ostream &html_out )
     html_out << "<h2>Section Headers</h2>";
     RenderSectionHeaders( html_out, m_section_headers );
 
-    auto DumpGroupSection = [ this, &html_out ]( uint64_t offset, uint64_t size )
-    {
-        ASSERT( size % 4 == 0 );
-
-        ASSERT( this->input.U32At( offset ) == 0x01 ); // GRP_COMDAT ( no other option )
-
-        html_out << "GROUP section at " << offset << " with size " << size << "<br>"
-                 << "    - flags: GRP_COMDAT<br>";
-
-        uint64_t it = offset + 4;
-        uint64_t end = offset + size;
-
-        for ( ; it != end; it += 4 )
-        {
-            html_out << "    - section_header_idx : " << this->input.U32At( it ) << "<br>";
-        }
-    };
-
     for ( size_t i = 1; i < m_section_headers.size(); ++i )
     {
         const SectionHeader &sh = m_section_headers[ i ];
 
         RenderSectionTitle( html_out, i, sh );
 
-        if ( sh.m_type == SectionType::SHT_GROUP )
-        {
-            DumpGroupSection( sh.m_offset, sh.m_size );
-            continue;
-        }
-
-        if ( sh.m_type == SectionType::SHT_SYMTAB )
-        {
-            ASSERT( sh.m_ent_size == 24 );
-
-            std::vector< Symbol > symbols;
-            symbols.reserve( sh.m_size / sh.m_ent_size );
-
-            for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
-            {
-                symbols.emplace_back( *this, sh.m_offset + 24 * i );
-            }
-
-            RenderSymbolTable( html_out, symbols );
-        }
-
-        if ( sh.m_type == SectionType::SHT_NOBITS || sh.m_type == SectionType::SHT_INIT_ARRAY )
-        {
-            DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
-            continue;
-        }
-
-        if ( sh.m_type == SectionType::SHT_RELA )
-        {
-            ASSERT( sh.m_ent_size == 24 );
-            ASSERT( sh.m_size % 24 == 0 );
-
-            html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
-
-            for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
-            {
-                uint64_t ent_offset = sh.m_offset + 24 * i;
-
-                uint64_t offset = input.U64At( ent_offset + 0x00 );
-                auto type       = static_cast< X64RelocationType >( input.U32At( ent_offset + 0x08 ) );
-                uint32_t sym    = input.U32At( ent_offset + 0x0c );
-                int64_t addend  = input.U64At( ent_offset + 0x10 );
-
-                html_out << "<tr>"
-                         << "<td>" << i << "</td>"
-                         << "<td>" << offset << "</td>"
-                         << "<td>" << sym << "</td>"
-                         << "<td>" << type << "</td>"
-                         << "<td>" << addend << "</td>"
-                         << "</tr>";
-            }
-            html_out << "</table>";
-            continue;
-        }
-
-        if ( sh.m_type == SectionType::SHT_STRTAB )
-        {
-            RenderAsStringTable( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
-            continue;
-        }
-
-        if ( sh.m_type == SectionType::SHT_PROGBITS )
-        {
-            if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
-            {
-                std::stringstream disasm_out;
-
-                auto fp = []( const char *ins, void *data )
-                {
-                    *static_cast< std::stringstream* >( data ) << ins;
-                };
-
-                html_out << "Disassembling section of size = " << sh.m_size << "\n";
-
-
-                std::string_view exec = input.StringViewAt( sh.m_offset, sh.m_size );
-                DisasmExecutableSection( (const unsigned char *)exec.data(), exec.size(), fp, static_cast< void* >( &disasm_out ) );
-
-                html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
-            }
-            else
-            {
-                DumpBinaryData( input.StringViewAt( sh.m_offset, sh.m_size ), html_out );
-            }
-            continue;
-        }
-
-        std::cerr << "<script>console.log( 'unknown section' );</script>\n";
+        std::visit( SectionHtmlRenderer( html_out ), m_sections[ i ].m_var );
     }
 
 
