@@ -141,6 +141,16 @@ struct GroupSection
     std::vector< uint32_t > m_section_indices;
 };
 
+struct NoBitsSection
+{
+    std::string m_data;
+};
+
+struct InitArraySection
+{
+    std::string m_data;
+};
+
 struct Section
 {
     std::variant< std::monostate
@@ -148,6 +158,8 @@ struct Section
                 , StringTable
                 , SymbolTable
                 , RelocationEntries
+                , NoBitsSection
+                , InitArraySection
     > m_var;
 };
 

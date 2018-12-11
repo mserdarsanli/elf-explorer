@@ -125,6 +125,19 @@ ELF_File::ELF_File( InputBuffer &input_ )
             {
                 group.m_section_indices.push_back( this->input.U32At( it ) );
             }
+            break;
+        }
+        case SectionType::SHT_NOBITS:
+        {
+            auto &s = m_sections[ i ].m_var.emplace< NoBitsSection >();
+            s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
+            break;
+        }
+        case SectionType::SHT_INIT_ARRAY:
+        {
+            auto &s = m_sections[ i ].m_var.emplace< InitArraySection >();
+            s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
+            break;
         }
         default:
             std::cerr << "Skipping unhandled section of type " << sh.m_type << "\n";
@@ -145,6 +158,16 @@ struct SectionHtmlRenderer
     void operator()( const std::monostate & )
     {
         // Do nothing?
+    }
+
+    void operator()( const NoBitsSection &s )
+    {
+        RenderBinaryData( html_out, s.m_data );
+    }
+
+    void operator()( const InitArraySection &s )
+    {
+        RenderBinaryData( html_out, s.m_data );
     }
 
     void operator()( const StringTable &strtab )
@@ -211,12 +234,6 @@ void ELF_File::render_html_into( std::ostream &html_out )
         RenderSectionTitle( html_out, i, sh );
 
         std::visit( SectionHtmlRenderer( html_out ), m_sections[ i ].m_var );
-
-        if ( sh.m_type == SectionType::SHT_NOBITS || sh.m_type == SectionType::SHT_INIT_ARRAY )
-        {
-            RenderBinaryData( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
-            continue;
-        }
 
         if ( sh.m_type == SectionType::SHT_PROGBITS )
         {
