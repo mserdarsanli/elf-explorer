@@ -103,6 +103,7 @@ struct Symbol
 
 struct SectionHeader
 {
+    SectionHeader() = default;
     SectionHeader( InputBuffer &input, StringTable &shstrtab, uint64_t header_offset );
 
     std::string m_name;
@@ -159,6 +160,8 @@ struct ProgBitsSection
 
 struct Section
 {
+    SectionHeader m_header;
+
     std::variant< std::monostate
                 , GroupSection
                 , StringTable
@@ -174,6 +177,5 @@ struct ELF_File
 {
     static ELF_File LoadFrom( InputBuffer & );
 
-    std::vector< SectionHeader > m_section_headers;
     std::vector< Section > m_sections;
 };

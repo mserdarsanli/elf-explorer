@@ -52,17 +52,17 @@ struct ELF_Loader
         uint64_t shstrtab_len = m_input.U64At( shstrtab_header_offset + 0x20 );
         StringTable shstrtab( m_input, shstrtab_offset, shstrtab_len );
 
-        m_section_headers.reserve( m_section_header_num_entries );
+        m_sections.resize( m_section_header_num_entries );
         for ( int i = 0; i < m_section_header_num_entries; ++i )
         {
-            m_section_headers.emplace_back( m_input, shstrtab, m_section_header_offset + m_section_header_entry_size * i );
+            m_sections[ i ].m_header = SectionHeader( m_input, shstrtab, m_section_header_offset + m_section_header_entry_size * i );
         }
 
 
         // TODO remove this?
-        for ( size_t i = 0; i < m_section_headers.size(); ++i )
+        for ( size_t i = 0; i < m_sections.size(); ++i )
         {
-            const SectionHeader &sh = m_section_headers[ i ];
+            const SectionHeader &sh = m_sections[ i ].m_header;
 
             if ( sh.m_name == ".strtab" )
             {
@@ -75,8 +75,7 @@ struct ELF_Loader
     {
         // Load actual section data
         // TODO recursively load dependent sections first
-        m_sections.resize( m_section_headers.size() );
-        for ( size_t i = 1; i < m_section_headers.size(); ++i )
+        for ( size_t i = 1; i < m_sections.size(); ++i )
         {
             LoadSection( i );
         }
@@ -89,7 +88,7 @@ struct ELF_Loader
             return;
         }
 
-        const SectionHeader &sh = m_section_headers[ idx ];
+        const SectionHeader &sh = m_sections[ idx ].m_header;
 
         switch ( sh.m_type )
         {
@@ -179,8 +178,6 @@ struct ELF_Loader
     uint16_t m_section_header_num_entries;
     uint16_t m_section_names_header_index;
 
-    std::vector< SectionHeader > m_section_headers;
-
     std::vector< Section > m_sections;
 
     std::optional< StringTable > m_strtab;
@@ -195,7 +192,6 @@ ELF_File ELF_File::LoadFrom( InputBuffer &input )
     loader.LoadSections();
 
     ELF_File res;
-    res.m_section_headers = std::move( loader.m_section_headers );
     res.m_sections = std::move( loader.m_sections );
     return res;
 }

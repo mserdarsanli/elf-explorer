@@ -111,7 +111,7 @@ static void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol
 }
 
 static void RenderSectionHeaders( std::ostream &html_out,
-                           const std::vector< SectionHeader > &section_headers )
+                           const std::vector< Section > &sections )
 {
     html_out << R"(
 <table id="table-section-headers" border="1" cellspacing="0" style="word-break: break-all;">
@@ -133,9 +133,9 @@ static void RenderSectionHeaders( std::ostream &html_out,
   <tbody>
 )";
 
-    for ( size_t i = 1; i != section_headers.size(); ++i )
+    for ( size_t i = 1; i != sections.size(); ++i )
     {
-        const SectionHeader &sh = section_headers[ i ];
+        const SectionHeader &sh = sections[ i ].m_header;
 
         html_out << "<tr>"
                  << "<td><a class=\"section_header_anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
@@ -316,11 +316,11 @@ void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
 )";
 
     html_out << "<h2>Section Headers</h2>";
-    RenderSectionHeaders( html_out, elf.m_section_headers );
+    RenderSectionHeaders( html_out, elf.m_sections );
 
-    for ( size_t i = 1; i < elf.m_section_headers.size(); ++i )
+    for ( size_t i = 1; i < elf.m_sections.size(); ++i )
     {
-        const SectionHeader &sh = elf.m_section_headers[ i ];
+        const SectionHeader &sh = elf.m_sections[ i ].m_header;
 
         RenderSectionTitle( html_out, i, sh );
 
