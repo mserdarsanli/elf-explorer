@@ -151,6 +151,12 @@ struct InitArraySection
     std::string m_data;
 };
 
+struct ProgBitsSection
+{
+    std::string m_data;
+    bool m_is_executable = false; // TODO this can be used from section header
+};
+
 struct Section
 {
     std::variant< std::monostate
@@ -160,6 +166,7 @@ struct Section
                 , RelocationEntries
                 , NoBitsSection
                 , InitArraySection
+                , ProgBitsSection
     > m_var;
 };
 

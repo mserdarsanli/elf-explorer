@@ -139,6 +139,13 @@ ELF_File::ELF_File( InputBuffer &input_ )
             s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
             break;
         }
+        case SectionType::SHT_PROGBITS:
+        {
+            auto &s = m_sections[ i ].m_var.emplace< ProgBitsSection >();
+            s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
+            s.m_is_executable = ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable );
+            break;
+        }
         default:
             std::cerr << "Skipping unhandled section of type " << sh.m_type << "\n";
         }
@@ -163,6 +170,29 @@ struct SectionHtmlRenderer
     void operator()( const NoBitsSection &s )
     {
         RenderBinaryData( html_out, s.m_data );
+    }
+
+    void operator()( const ProgBitsSection &s )
+    {
+        if ( s.m_is_executable )
+        {
+            std::stringstream disasm_out;
+
+            auto fp = []( const char *ins, void *data )
+            {
+                *static_cast< std::stringstream* >( data ) << ins;
+            };
+
+            html_out << "Disassembly:<br>";
+
+            DisasmExecutableSection( (const unsigned char *)s.m_data.data(), s.m_data.size(), fp, static_cast< void* >( &disasm_out ) );
+
+            html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
+        }
+        else
+        {
+            RenderBinaryData( html_out, s.m_data );
+        }
     }
 
     void operator()( const InitArraySection &s )
@@ -234,32 +264,6 @@ void ELF_File::render_html_into( std::ostream &html_out )
         RenderSectionTitle( html_out, i, sh );
 
         std::visit( SectionHtmlRenderer( html_out ), m_sections[ i ].m_var );
-
-        if ( sh.m_type == SectionType::SHT_PROGBITS )
-        {
-            if ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable )
-            {
-                std::stringstream disasm_out;
-
-                auto fp = []( const char *ins, void *data )
-                {
-                    *static_cast< std::stringstream* >( data ) << ins;
-                };
-
-                html_out << "Disassembling section of size = " << sh.m_size << "\n";
-
-
-                std::string_view exec = input.StringViewAt( sh.m_offset, sh.m_size );
-                DisasmExecutableSection( (const unsigned char *)exec.data(), exec.size(), fp, static_cast< void* >( &disasm_out ) );
-
-                html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
-            }
-            else
-            {
-                RenderBinaryData( html_out, input.StringViewAt( sh.m_offset, sh.m_size ) );
-            }
-            continue;
-        }
 
         std::cerr << "<script>console.log( 'unknown section' );</script>\n";
     }
