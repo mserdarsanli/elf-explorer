@@ -6,6 +6,8 @@
 
 #include "elf_structs.hpp"
 
+void RenderAsHTML( std::ostream &html_out, const ELF_File &elf );
+
 std::string escape( const std::string &s );
 void RenderAsStringTable( std::ostream &html_out, std::string_view s );
 void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &symbols );

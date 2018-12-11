@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "elf_structs.hpp"
+#include "html_output.hpp"
 #include "test_data.hpp" // This should go away when emcc can open any file TODO
 
 static std::vector< unsigned char > read_file( const char *file_name )
@@ -57,7 +58,7 @@ int my_main( int argc, char* argv[] )
     ELF_File file( input );
 
     std::stringstream html_out;
-    file.render_html_into( html_out );
+    RenderAsHTML( html_out, file );
 
     auto begin = input.m_read.begin();
     auto end = input.m_read.end();

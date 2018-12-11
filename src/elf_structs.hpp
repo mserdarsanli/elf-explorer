@@ -174,8 +174,6 @@ struct ELF_File
 {
     ELF_File( InputBuffer & );
 
-    void render_html_into( std::ostream & );
-
     uint64_t section_header_offset;
     uint16_t section_header_entry_size;
     uint16_t section_header_num_entries;

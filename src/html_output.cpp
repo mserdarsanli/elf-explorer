@@ -4,6 +4,8 @@
 
 #include <cxxabi.h>
 
+#include "wrap_nasm.h"
+
 static std::string demangle( const std::string &mangled_name )
 {
     int status;
@@ -212,4 +214,116 @@ void RenderBinaryData( std::ostream &html_out, std::string_view s )
         html_out << std::string( indent, ' ' ) << render_print.str() << "  " << render_hex.str() << "\n";
     }
     html_out << "</pre>";
+}
+
+struct SectionHtmlRenderer
+{
+    SectionHtmlRenderer( std::ostream &html_out_ )
+        : html_out( html_out_ )
+    {
+    }
+
+    void operator()( const std::monostate & )
+    {
+        std::cerr << "<script>console.log( 'unknown section' );</script>\n";
+    }
+
+    void operator()( const NoBitsSection &s )
+    {
+        RenderBinaryData( html_out, s.m_data );
+    }
+
+    void operator()( const ProgBitsSection &s )
+    {
+        if ( s.m_is_executable )
+        {
+            std::stringstream disasm_out;
+
+            auto fp = []( const char *ins, void *data )
+            {
+                *static_cast< std::stringstream* >( data ) << ins;
+            };
+
+            html_out << "Disassembly:<br>";
+
+            DisasmExecutableSection( (const unsigned char *)s.m_data.data(), s.m_data.size(), fp, static_cast< void* >( &disasm_out ) );
+
+            html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
+        }
+        else
+        {
+            RenderBinaryData( html_out, s.m_data );
+        }
+    }
+
+    void operator()( const InitArraySection &s )
+    {
+        RenderBinaryData( html_out, s.m_data );
+    }
+
+    void operator()( const StringTable &strtab )
+    {
+        RenderAsStringTable( html_out, strtab.m_str );
+    }
+
+    void operator()( const SymbolTable &symtab )
+    {
+        RenderSymbolTable( html_out, symtab.m_symbols );
+    }
+
+    void operator()( const GroupSection &group )
+    {
+        ASSERT( group.m_flags == 0x01 ); // GRP_COMDAT ( no other option )
+
+        html_out << "GROUP section<br>"
+                 << "    - flags: GRP_COMDAT<br>";
+
+        for ( uint32_t sec_idx : group.m_section_indices )
+        {
+            html_out << "    - section idx : " << sec_idx << "<br>";
+        }
+    }
+
+    void operator()( const RelocationEntries &reloc )
+    {
+        html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
+        for ( size_t entry_idx = 0; entry_idx < reloc.m_entries.size(); ++entry_idx )
+        {
+            html_out << "<tr>"
+                     << "<td>" << entry_idx << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_offset << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_symbol << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_type << "</td>"
+                     << "<td>" << reloc.m_entries[ entry_idx ].m_addend << "</td>"
+                     << "</tr>";
+        }
+        html_out << "</table>";
+    }
+
+    std::ostream &html_out;
+};
+
+void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
+{
+    html_out << R"(<!doctype html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+)";
+
+    html_out << "<h2>Section Headers</h2>";
+    RenderSectionHeaders( html_out, elf.m_section_headers );
+
+    for ( size_t i = 1; i < elf.m_section_headers.size(); ++i )
+    {
+        const SectionHeader &sh = elf.m_section_headers[ i ];
+
+        RenderSectionTitle( html_out, i, sh );
+
+        std::visit( SectionHtmlRenderer( html_out ), elf.m_sections[ i ].m_var );
+    }
 }
