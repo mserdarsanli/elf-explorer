@@ -27,16 +27,16 @@ ELF_File::ELF_File( InputBuffer &input_ )
     ASSERT( input.U64At( 0x18 ) == 0 ); // Entry point offset
     ASSERT( input.U64At( 0x20 ) == 0 ); // Program header offset
 
-    section_header_offset = input.U64At( 0x28 );
+    uint64_t section_header_offset = input.U64At( 0x28 );
     ASSERT( input.U32At( 0x30 ) == 0 ); // Flags
 
     ASSERT( input.U16At( 0x34 ) == 64 ); // ELF Header size
     ASSERT( input.U16At( 0x36 ) == 0 ); // Size of program header
     ASSERT( input.U16At( 0x38 ) == 0 ); // program header num entries
 
-    section_header_entry_size = input.U16At( 0x3A );
-    section_header_num_entries = input.U16At( 0x3C );
-    section_names_header_index = input.U16At( 0x3E );
+    uint16_t section_header_entry_size = input.U16At( 0x3A );
+    uint16_t section_header_num_entries = input.U16At( 0x3C );
+    uint16_t section_names_header_index = input.U16At( 0x3E );
 
 
     // TODO make this a member var

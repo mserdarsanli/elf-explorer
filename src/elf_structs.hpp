@@ -174,10 +174,6 @@ struct ELF_File
 {
     ELF_File( InputBuffer & );
 
-    uint64_t section_header_offset;
-    uint16_t section_header_entry_size;
-    uint16_t section_header_num_entries;
-    uint16_t section_names_header_index;
     std::vector< SectionHeader > m_section_headers;
 
     std::vector< Section > m_sections;
