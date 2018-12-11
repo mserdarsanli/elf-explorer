@@ -82,7 +82,7 @@ struct StringTable
 {
     StringTable() = default;
 
-    StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size );
+    StringTable( InputBuffer &input, uint64_t section_offset, uint64_t size );
     std::string_view StringAtOffset( uint64_t string_offset ) const;
 
     std::string m_str;
@@ -90,7 +90,7 @@ struct StringTable
 
 struct Symbol
 {
-    Symbol( const ELF_File &ctx, uint64_t offset );
+    Symbol( InputBuffer &input, StringTable &strtab, uint64_t offset );
 
     std::string m_name;
     SymbolBinding m_binding;
@@ -103,7 +103,7 @@ struct Symbol
 
 struct SectionHeader
 {
-    SectionHeader( const ELF_File &ctx, uint64_t header_offset );
+    SectionHeader( InputBuffer &input, StringTable &shstrtab, uint64_t header_offset );
 
     std::string m_name;
     SectionType m_type;
@@ -172,7 +172,7 @@ struct Section
 
 struct ELF_File
 {
-    ELF_File( InputBuffer & );
+    static ELF_File LoadFrom( InputBuffer & );
 
     std::vector< SectionHeader > m_section_headers;
 
@@ -180,6 +180,4 @@ struct ELF_File
 
     std::optional< StringTable > strtab;
     std::optional< StringTable > shstrtab;
-
-    InputBuffer &input;
 };

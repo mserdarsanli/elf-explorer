@@ -55,7 +55,7 @@ int my_main( int argc, char* argv[] )
     }
 
     InputBuffer input( argv[ 1 ], std::move( obj_file_contents ) ); // TODO first parameter can be removed
-    ELF_File file( input );
+    ELF_File file = ELF_File::LoadFrom( input );
 
     std::stringstream html_out;
     RenderAsHTML( html_out, file );

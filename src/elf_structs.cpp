@@ -1,8 +1,9 @@
 #include "elf_structs.hpp"
 
-ELF_File::ELF_File( InputBuffer &input_ )
-    : input( input_ )
+ELF_File ELF_File::LoadFrom( InputBuffer &input )
 {
+    ELF_File res;
+
     ASSERT( input.U8At( 0 ) == 0x7F );
     ASSERT( input.U8At( 1 ) == 'E' );
     ASSERT( input.U8At( 2 ) == 'L' );
@@ -42,50 +43,50 @@ ELF_File::ELF_File( InputBuffer &input_ )
     // TODO make this a member var
     uint64_t shstrtab_header_offset = section_header_offset + section_header_entry_size * section_names_header_index;
     uint64_t shstrtab_offset = input.U64At( shstrtab_header_offset + 0x18 );
-    shstrtab = StringTable( *this, shstrtab_offset, input.U64At( shstrtab_header_offset + 0x20 ) );
+    res.shstrtab = StringTable( input, shstrtab_offset, input.U64At( shstrtab_header_offset + 0x20 ) );
 
-    m_section_headers.reserve( section_header_num_entries );
+    res.m_section_headers.reserve( section_header_num_entries );
     for ( int i = 0; i < section_header_num_entries; ++i )
     {
-        m_section_headers.emplace_back( *this, section_header_offset + section_header_entry_size * i );
+        res.m_section_headers.emplace_back( input, *res.shstrtab, section_header_offset + section_header_entry_size * i );
     }
 
-    for ( size_t i = 0; i < m_section_headers.size(); ++i )
+    for ( size_t i = 0; i < res.m_section_headers.size(); ++i )
     {
-        const SectionHeader &sh = m_section_headers[ i ];
+        const SectionHeader &sh = res.m_section_headers[ i ];
 
         // TODO remove this?
         if ( sh.m_name == ".strtab" )
         {
-            strtab = StringTable( *this, sh.m_offset, sh.m_size );
+            res.strtab = StringTable( input, sh.m_offset, sh.m_size );
         }
     }
 
     // Load actual section data
     // TODO recursively load dependent sections first
-    m_sections.resize( m_section_headers.size() );
-    for ( size_t i = 1; i < m_section_headers.size(); ++i )
+    res.m_sections.resize( res.m_section_headers.size() );
+    for ( size_t i = 1; i < res.m_section_headers.size(); ++i )
     {
-        const SectionHeader &sh = m_section_headers[ i ];
+        const SectionHeader &sh = res.m_section_headers[ i ];
 
         switch ( sh.m_type )
         {
         case SectionType::SHT_STRTAB:
         {
-            m_sections[ i ].m_var = StringTable( *this, sh.m_offset, sh.m_size );
+            res.m_sections[ i ].m_var = StringTable( input, sh.m_offset, sh.m_size );
             break;
         }
         case SectionType::SHT_SYMTAB:
         {
             ASSERT( sh.m_ent_size == 24 );
 
-            SymbolTable &symtab = m_sections[ i ].m_var.emplace< SymbolTable >();
+            SymbolTable &symtab = res.m_sections[ i ].m_var.emplace< SymbolTable >();
 
             symtab.m_symbols.reserve( sh.m_size / sh.m_ent_size );
 
             for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
             {
-                symtab.m_symbols.emplace_back( *this, sh.m_offset + 24 * i );
+                symtab.m_symbols.emplace_back( input, *res.strtab, sh.m_offset + 24 * i );
             }
 
             break;
@@ -95,7 +96,7 @@ ELF_File::ELF_File( InputBuffer &input_ )
             ASSERT( sh.m_ent_size == 24 );
             ASSERT( sh.m_size % 24 == 0 );
 
-            RelocationEntries &entries = m_sections[ i ].m_var.emplace< RelocationEntries >();
+            RelocationEntries &entries = res.m_sections[ i ].m_var.emplace< RelocationEntries >();
             entries.m_entries.resize( sh.m_size / 24 );
 
             for ( uint64_t i = 0; sh.m_offset + 24 * i < sh.m_offset + sh.m_size; ++i )
@@ -112,34 +113,34 @@ ELF_File::ELF_File( InputBuffer &input_ )
         case SectionType::SHT_GROUP:
         {
             ASSERT( sh.m_size % 4 == 0 );
-            GroupSection &group = m_sections[ i ].m_var.emplace< GroupSection >();
+            GroupSection &group = res.m_sections[ i ].m_var.emplace< GroupSection >();
 
-            group.m_flags = this->input.U32At( sh.m_offset );
+            group.m_flags = input.U32At( sh.m_offset );
 
             uint64_t it = sh.m_offset + 4;
             uint64_t end = sh.m_offset + sh.m_size;
 
             for ( ; it != end; it += 4 )
             {
-                group.m_section_indices.push_back( this->input.U32At( it ) );
+                group.m_section_indices.push_back( input.U32At( it ) );
             }
             break;
         }
         case SectionType::SHT_NOBITS:
         {
-            auto &s = m_sections[ i ].m_var.emplace< NoBitsSection >();
+            auto &s = res.m_sections[ i ].m_var.emplace< NoBitsSection >();
             s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
             break;
         }
         case SectionType::SHT_INIT_ARRAY:
         {
-            auto &s = m_sections[ i ].m_var.emplace< InitArraySection >();
+            auto &s = res.m_sections[ i ].m_var.emplace< InitArraySection >();
             s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
             break;
         }
         case SectionType::SHT_PROGBITS:
         {
-            auto &s = m_sections[ i ].m_var.emplace< ProgBitsSection >();
+            auto &s = res.m_sections[ i ].m_var.emplace< ProgBitsSection >();
             s.m_data = input.StringViewAt( sh.m_offset, sh.m_size );
             s.m_is_executable = ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable );
             break;
@@ -149,43 +150,44 @@ ELF_File::ELF_File( InputBuffer &input_ )
         }
     }
 
+    ASSERT( res.strtab );
 
-    ASSERT( strtab );
+    return res;
 }
 
-SectionHeader::SectionHeader( const ELF_File &ctx, uint64_t offset )
+SectionHeader::SectionHeader( InputBuffer &input, StringTable &shstrtab, uint64_t offset )
 {
-    m_name = ctx.shstrtab->StringAtOffset( ctx.input.U32At( offset + 0x00 ) );
-    m_type = static_cast< SectionType >( ctx.input.U32At( offset + 0x04 ) );
-    m_attrs      = SectionFlagsBitfield( ctx.input.U64At( offset + 0x08 ) );
-    m_address    = ctx.input.U64At( offset + 0x10 );
-    m_offset     = ctx.input.U64At( offset + 0x18 );
-    m_size       = ctx.input.U64At( offset + 0x20 );
-    m_asso_idx   = ctx.input.U32At( offset + 0x28 );
-    m_info       = ctx.input.U32At( offset + 0x2c );
-    m_addr_align = ctx.input.U64At( offset + 0x30 );
-    m_ent_size   = ctx.input.U64At( offset + 0x38 );
+    m_name = shstrtab.StringAtOffset( input.U32At( offset + 0x00 ) );
+    m_type = static_cast< SectionType >( input.U32At( offset + 0x04 ) );
+    m_attrs      = SectionFlagsBitfield( input.U64At( offset + 0x08 ) );
+    m_address    = input.U64At( offset + 0x10 );
+    m_offset     = input.U64At( offset + 0x18 );
+    m_size       = input.U64At( offset + 0x20 );
+    m_asso_idx   = input.U32At( offset + 0x28 );
+    m_info       = input.U32At( offset + 0x2c );
+    m_addr_align = input.U64At( offset + 0x30 );
+    m_ent_size   = input.U64At( offset + 0x38 );
 }
 
-Symbol::Symbol( const ELF_File &ctx, uint64_t offset )
+Symbol::Symbol( InputBuffer &input, StringTable &strtab, uint64_t offset )
 {
-    m_name = ctx.strtab->StringAtOffset( ctx.input.U32At( offset ) );
-    uint8_t info = ctx.input.U8At( offset + 4 );
+    m_name = strtab.StringAtOffset( input.U32At( offset ) );
+    uint8_t info = input.U8At( offset + 4 );
     m_binding = static_cast< SymbolBinding >( info >> 4 );
     m_type = static_cast< SymbolType >( info & 15 );
-    m_visibility = static_cast< SymbolVisibility >( ctx.input.U8At( offset + 5 ) );
-    m_section_idx = ctx.input.U16At( offset + 6 );
-    m_value = ctx.input.U64At( offset + 8 );
-    m_size = ctx.input.U64At( offset + 16 );
+    m_visibility = static_cast< SymbolVisibility >( input.U8At( offset + 5 ) );
+    m_section_idx = input.U16At( offset + 6 );
+    m_value = input.U64At( offset + 8 );
+    m_size = input.U64At( offset + 16 );
 }
 
-StringTable::StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size )
+StringTable::StringTable( InputBuffer &input, uint64_t section_offset, uint64_t size )
 {
     for ( uint64_t i = 0; i < size; ++i )
     {
-        (void)ctx.input.U8At( section_offset + i ); // Set read
+        (void)input.U8At( section_offset + i ); // Set read
     }
-    m_str.assign( (const char*)ctx.input.contents.data() + section_offset, size );
+    m_str.assign( (const char*)input.contents.data() + section_offset, size );
 }
 
 std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const
