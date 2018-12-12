@@ -7,6 +7,14 @@
 
 static void output_ins(uint64_t offset, uint8_t *data, int datalen, char *insn, void (*output_callback)( const char *, void * ), void *cb_data )
 {
+    const int max_x64_insn_size = 15;
+    if ( datalen > max_x64_insn_size )
+    {
+        // TODO can't throw exception here because this is a C file
+        fprintf( stderr, "Unexpected x64 instruction of size %d\n", datalen );
+        return;
+    }
+
     char out_buf[ 500 ]; // TODO is this enough?
     char *out = out_buf;
     *out = 0;
@@ -15,25 +23,12 @@ static void output_ins(uint64_t offset, uint8_t *data, int datalen, char *insn, 
     int bytes;
     out += sprintf( out, "%08"PRIX64"  ", offset);
 
-    bytes = 0;
-    while (datalen > 0 && bytes < bytes_per_line) {
-        out += sprintf( out, "%02X ", *data++);
-        bytes++;
-        datalen--;
+    for ( int i = 0; i < datalen; ++i )
+    {
+        out += sprintf( out, "%02X ", data[ i ] );
     }
 
-    out += sprintf(out, "%*s%s\n", (bytes_per_line + 1 - bytes) * 3, "", insn);
-
-    while (datalen > 0) {
-        out += sprintf(out, "         -");
-        bytes = 0;
-        while (datalen > 0 && bytes < bytes_per_line) {
-            out += sprintf(out, "%02X", *data++);
-            bytes++;
-            datalen--;
-        }
-        out += sprintf(out, "\n");
-    }
+    out += sprintf(out, "%*s%s\n", (bytes_per_line + 1 - datalen) * 3, "", insn);
 
     output_callback( out_buf, cb_data );
 }
