@@ -87,8 +87,6 @@ struct StringTable
 
 struct Symbol
 {
-    Symbol( InputBuffer &input, StringTable &strtab, uint64_t offset );
-
     std::string m_name;
     SymbolBinding m_binding;
     SymbolType m_type;
@@ -100,9 +98,6 @@ struct Symbol
 
 struct SectionHeader
 {
-    SectionHeader() = default;
-    SectionHeader( InputBuffer &input, StringTable &shstrtab, uint64_t header_offset );
-
     std::string m_name;
     SectionType m_type;
     SectionFlagsBitfield m_attrs;

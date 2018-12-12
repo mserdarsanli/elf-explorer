@@ -11,6 +11,38 @@ static StringTable LoadStringTable( InputBuffer &input, uint64_t section_offset,
     return res;
 }
 
+static Symbol LoadSymbol( InputBuffer &input, StringTable &strtab, uint64_t offset )
+{
+    Symbol res;
+
+    res.m_name = strtab.StringAtOffset( input.U32At( offset ) );
+    uint8_t info = input.U8At( offset + 4 );
+    res.m_binding = static_cast< SymbolBinding >( info >> 4 );
+    res.m_type = static_cast< SymbolType >( info & 15 );
+    res.m_visibility = static_cast< SymbolVisibility >( input.U8At( offset + 5 ) );
+    res.m_section_idx = input.U16At( offset + 6 );
+    res.m_value = input.U64At( offset + 8 );
+    res.m_size = input.U64At( offset + 16 );
+
+    return res;
+}
+
+static SectionHeader LoadSectionHeader( InputBuffer &input, StringTable &shstrtab, uint64_t offset )
+{
+    SectionHeader res;
+    res.m_name = shstrtab.StringAtOffset( input.U32At( offset + 0x00 ) );
+    res.m_type = static_cast< SectionType >( input.U32At( offset + 0x04 ) );
+    res.m_attrs      = SectionFlagsBitfield( input.U64At( offset + 0x08 ) );
+    res.m_address    = input.U64At( offset + 0x10 );
+    res.m_offset     = input.U64At( offset + 0x18 );
+    res.m_size       = input.U64At( offset + 0x20 );
+    res.m_asso_idx   = input.U32At( offset + 0x28 );
+    res.m_info       = input.U32At( offset + 0x2c );
+    res.m_addr_align = input.U64At( offset + 0x30 );
+    res.m_ent_size   = input.U64At( offset + 0x38 );
+    return res;
+}
+
 struct ELF_Loader
 {
     ELF_Loader( InputBuffer &input )
@@ -66,7 +98,7 @@ struct ELF_Loader
         m_sections.resize( m_section_header_num_entries );
         for ( int i = 0; i < m_section_header_num_entries; ++i )
         {
-            m_sections[ i ].m_header = SectionHeader( m_input, shstrtab, m_section_header_offset + m_section_header_entry_size * i );
+            m_sections[ i ].m_header = LoadSectionHeader( m_input, shstrtab, m_section_header_offset + m_section_header_entry_size * i );
         }
 
 
@@ -118,7 +150,7 @@ struct ELF_Loader
 
             for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
             {
-                symtab.m_symbols.emplace_back( m_input, *m_strtab, sh.m_offset + 24 * i );
+                symtab.m_symbols.emplace_back( LoadSymbol( m_input, *m_strtab, sh.m_offset + 24 * i ) );
             }
 
             break;
@@ -205,32 +237,6 @@ ELF_File ELF_File::LoadFrom( InputBuffer &input )
     ELF_File res;
     res.m_sections = std::move( loader.m_sections );
     return res;
-}
-
-SectionHeader::SectionHeader( InputBuffer &input, StringTable &shstrtab, uint64_t offset )
-{
-    m_name = shstrtab.StringAtOffset( input.U32At( offset + 0x00 ) );
-    m_type = static_cast< SectionType >( input.U32At( offset + 0x04 ) );
-    m_attrs      = SectionFlagsBitfield( input.U64At( offset + 0x08 ) );
-    m_address    = input.U64At( offset + 0x10 );
-    m_offset     = input.U64At( offset + 0x18 );
-    m_size       = input.U64At( offset + 0x20 );
-    m_asso_idx   = input.U32At( offset + 0x28 );
-    m_info       = input.U32At( offset + 0x2c );
-    m_addr_align = input.U64At( offset + 0x30 );
-    m_ent_size   = input.U64At( offset + 0x38 );
-}
-
-Symbol::Symbol( InputBuffer &input, StringTable &strtab, uint64_t offset )
-{
-    m_name = strtab.StringAtOffset( input.U32At( offset ) );
-    uint8_t info = input.U8At( offset + 4 );
-    m_binding = static_cast< SymbolBinding >( info >> 4 );
-    m_type = static_cast< SymbolType >( info & 15 );
-    m_visibility = static_cast< SymbolVisibility >( input.U8At( offset + 5 ) );
-    m_section_idx = input.U16At( offset + 6 );
-    m_value = input.U64At( offset + 8 );
-    m_size = input.U64At( offset + 16 );
 }
 
 std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const
