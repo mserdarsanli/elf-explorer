@@ -218,8 +218,10 @@ static void RenderBinaryData( std::ostream &html_out, std::string_view s )
 
 struct SectionHtmlRenderer
 {
-    SectionHtmlRenderer( std::ostream &html_out_ )
+    SectionHtmlRenderer( std::ostream &html_out_, const std::vector< Section > &sections, size_t sec_idx )
         : html_out( html_out_ )
+        , m_sections( sections )
+        , m_cur_section_idx( sec_idx )
     {
     }
 
@@ -286,21 +288,30 @@ struct SectionHtmlRenderer
 
     void operator()( const RelocationEntries &reloc )
     {
+        const SectionHeader &sh = m_sections[ m_cur_section_idx ].m_header;
+        const SymbolTable &symtab = std::get< SymbolTable >( m_sections[ sh.m_asso_idx ].m_var ); // TODO assert
+
         html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
         for ( size_t entry_idx = 0; entry_idx < reloc.m_entries.size(); ++entry_idx )
         {
+            const RelocationEntry &entry = reloc.m_entries[ entry_idx ];
+
             html_out << "<tr>"
                      << "<td>" << entry_idx << "</td>"
-                     << "<td>" << reloc.m_entries[ entry_idx ].m_offset << "</td>"
-                     << "<td>" << reloc.m_entries[ entry_idx ].m_symbol << "</td>"
-                     << "<td>" << reloc.m_entries[ entry_idx ].m_type << "</td>"
-                     << "<td>" << reloc.m_entries[ entry_idx ].m_addend << "</td>"
+                     << "<td>" << entry.m_offset << "</td>"
+                     // TODO create info popup for symbols (demangled value etc.)
+                     // and show that on click
+                     << "<td>" << escape( symtab.m_symbols[ entry.m_symbol ].m_name ) << "</td>"
+                     << "<td>" << entry.m_type << "</td>"
+                     << "<td>" << entry.m_addend << "</td>"
                      << "</tr>";
         }
         html_out << "</table>";
     }
 
     std::ostream &html_out;
+    const std::vector< Section > m_sections;
+    size_t m_cur_section_idx;
 };
 
 void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
@@ -324,6 +335,6 @@ void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
 
         RenderSectionTitle( html_out, i, sh );
 
-        std::visit( SectionHtmlRenderer( html_out ), elf.m_sections[ i ].m_var );
+        std::visit( SectionHtmlRenderer( html_out, elf.m_sections, i ), elf.m_sections[ i ].m_var );
     }
 }
