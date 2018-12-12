@@ -80,9 +80,6 @@ struct ELF_File;
 
 struct StringTable
 {
-    StringTable() = default;
-
-    StringTable( const ELF_File &ctx, uint64_t section_offset, uint64_t size );
     std::string_view StringAtOffset( uint64_t string_offset ) const;
 
     std::string m_str;
@@ -90,8 +87,6 @@ struct StringTable
 
 struct Symbol
 {
-    Symbol( const ELF_File &ctx, uint64_t offset );
-
     std::string m_name;
     SymbolBinding m_binding;
     SymbolType m_type;
@@ -103,8 +98,6 @@ struct Symbol
 
 struct SectionHeader
 {
-    SectionHeader( const ELF_File &ctx, uint64_t header_offset );
-
     std::string m_name;
     SectionType m_type;
     SectionFlagsBitfield m_attrs;
@@ -159,6 +152,8 @@ struct ProgBitsSection
 
 struct Section
 {
+    SectionHeader m_header;
+
     std::variant< std::monostate
                 , GroupSection
                 , StringTable
@@ -172,20 +167,7 @@ struct Section
 
 struct ELF_File
 {
-    ELF_File( InputBuffer & );
-
-    void render_html_into( std::ostream & );
-
-    uint64_t section_header_offset;
-    uint16_t section_header_entry_size;
-    uint16_t section_header_num_entries;
-    uint16_t section_names_header_index;
-    std::vector< SectionHeader > m_section_headers;
+    static ELF_File LoadFrom( InputBuffer & );
 
     std::vector< Section > m_sections;
-
-    std::optional< StringTable > strtab;
-    std::optional< StringTable > shstrtab;
-
-    InputBuffer &input;
 };
