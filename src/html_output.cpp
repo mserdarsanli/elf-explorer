@@ -239,18 +239,39 @@ struct SectionHtmlRenderer
     {
         if ( s.m_is_executable )
         {
-            std::stringstream disasm_out;
+            std::pair< std::string_view, std::stringstream > state;
+            state.first = s.m_data;
 
-            auto fp = []( const char *ins, void *data )
+            auto fp = []( int offset, int len, char *instruction_str, void *user_data )
             {
-                *static_cast< std::stringstream* >( data ) << ins;
+                std::string_view data = static_cast< std::pair< std::string_view, std::stringstream >* >( user_data )->first;
+                std::stringstream &disasm_out = static_cast< std::pair< std::string_view, std::stringstream >* >( user_data )->second;
+
+                // TODO use fmtlib?
+                char out_buf[ 500 ];
+                char *out = out_buf;
+
+                out += sprintf( out, "%8d     ", offset );
+                for ( int i = 0; i < 15; ++i )
+                {
+                    if ( i < len )
+                    {
+                        out += sprintf( out, "%02X ", static_cast< unsigned char >( data[ offset + i ] ) );
+                    }
+                    else
+                    {
+                        out += sprintf( out, "   " );
+                    }
+                }
+
+                out += sprintf( out, "%s\n", instruction_str );
+
+                disasm_out << out_buf;
             };
 
-            html_out << "Disassembly:<br>";
+            DisasmExecutableSection( reinterpret_cast< unsigned char* >( const_cast< char* >( s.m_data.data() ) ), s.m_data.size(), fp, static_cast< void* >( &state ) );
 
-            DisasmExecutableSection( (const unsigned char *)s.m_data.data(), s.m_data.size(), fp, static_cast< void* >( &disasm_out ) );
-
-            html_out << "<pre style=\"padding-left: 100px;\">" << escape( disasm_out.str() ) << "</pre>";
+            html_out << "<pre style=\"padding-left: 50px;\">" << escape( state.second.str() ) << "</pre>";
         }
         else
         {

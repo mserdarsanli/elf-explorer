@@ -4,7 +4,9 @@
 extern "C" {
 #endif
 
-void DisasmExecutableSection( const unsigned char *data, uint64_t size, void (*output_callback)( const char *, void * ), void *cb_data );
+typedef void ( *DisasmCallback )( int offset, int len, char *instruction_str, void *user_data );
+
+void DisasmExecutableSection( unsigned char *data, uint64_t size, DisasmCallback cb_fn, void *cb_data );
 
 #ifdef __cplusplus
 }
