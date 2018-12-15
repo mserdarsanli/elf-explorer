@@ -12,72 +12,6 @@
 #include "enums.hpp"
 #include "input_buffer.hpp"
 
-enum class SectionFlags : uint64_t
-{
-    Writable   = 1 << 0,
-    Alloc      = 1 << 1,
-    Executable = 1 << 2,
-
-    Merge      = 1 << 4,
-    Strings    = 1 << 5,
-    InfoLink   = 1 << 6,
-
-    Group      = 1 << 9,
-};
-
-struct SectionFlagsBitfield
-{
-    SectionFlagsBitfield() = default;
-    SectionFlagsBitfield( uint64_t val )
-        : m_val( val )
-    {
-    }
-
-    uint64_t m_val = 0;
-};
-
-inline // TODO
-std::string to_string( SectionFlagsBitfield f )
-{
-    uint64_t val = f.m_val;
-
-    std::stringstream out;
-
-    #define SR_PROC_BIT( name ) \
-        if ( val & static_cast< uint64_t >( SectionFlags::name ) ) \
-        { \
-            out << #name; \
-            val -= static_cast< uint64_t >( SectionFlags::name ); \
-            if ( val ) \
-            { \
-                out << " | "; \
-            } \
-        }
-
-    SR_PROC_BIT( Writable   );
-    SR_PROC_BIT( Alloc      );
-    SR_PROC_BIT( Executable );
-
-    SR_PROC_BIT( Merge      );
-    SR_PROC_BIT( Strings    );
-    SR_PROC_BIT( InfoLink   );
-
-    SR_PROC_BIT( Group      );
-
-    #undef SR_PROC_BIT
-
-    if ( val )
-    {
-        out << "\033[31mUnknown( " << val << " )\033[0m";
-    }
-
-    return out.str();
-}
-
-
-struct ELF_File;
-
-
 struct StringTable
 {
     std::string_view StringAtOffset( uint64_t string_offset ) const;
@@ -100,7 +34,7 @@ struct SectionHeader
 {
     std::string m_name;
     SectionType m_type;
-    SectionFlagsBitfield m_attrs;
+    SectionFlags m_attrs;
     uint64_t m_address;
     uint64_t m_offset;
     uint64_t m_size;

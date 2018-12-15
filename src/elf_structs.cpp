@@ -32,7 +32,7 @@ static SectionHeader LoadSectionHeader( InputBuffer &input, StringTable &shstrta
     SectionHeader res;
     res.m_name = shstrtab.StringAtOffset( input.U32At( offset + 0x00 ) );
     res.m_type = static_cast< SectionType >( input.U32At( offset + 0x04 ) );
-    res.m_attrs      = SectionFlagsBitfield( input.U64At( offset + 0x08 ) );
+    res.m_attrs      = SectionFlags( input.U64At( offset + 0x08 ) );
     res.m_address    = input.U64At( offset + 0x10 );
     res.m_offset     = input.U64At( offset + 0x18 );
     res.m_size       = input.U64At( offset + 0x20 );
@@ -206,7 +206,7 @@ struct ELF_Loader
         {
             auto &s = m_sections[ idx ].m_var.emplace< ProgBitsSection >();
             s.m_data = m_input.StringViewAt( sh.m_offset, sh.m_size );
-            s.m_is_executable = ( (int)sh.m_attrs.m_val & (int)SectionFlags::Executable );
+            s.m_is_executable = ( sh.m_attrs & SectionFlags::SHF_EXECINSTR );
             break;
         }
         default:
