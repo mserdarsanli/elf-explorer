@@ -141,7 +141,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
                  << "<td><a class=\"section_header_anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
-                 << "<td>" << escape( to_string( sh.m_attrs ) ) << "</td>"
+                 << "<td>" << sh.m_attrs << "</td>"
                  << "<td>" << sh.m_address << "</td>"
                  << "<td><a href=\"#section-" << i << "\">" << sh.m_offset << "</a></td>"
                  << "<td>" << sh.m_size << "</td>"
@@ -161,7 +161,7 @@ static void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionH
     html_out << "<tr><th colspan=\"2\"><a style=\"font-size: 200%;\" name=\"section-" << i << "\">Section " << i << ": " << escape( sh.m_name ) << "</a></th></tr>";
     html_out << "<tr><th>Name</th><td>" << escape( sh.m_name ) << "</td></tr>";
     html_out << "<tr><th>Type</th><td>" << sh.m_type << "</td></tr>";
-    html_out << "<tr><th>Attrs</th><td>" << escape( to_string( sh.m_attrs ) ) << "</td></tr>";
+    html_out << "<tr><th>Attrs</th><td>" << sh.m_attrs << "</td></tr>";
     html_out << "<tr><th>Address</th><td>" << sh.m_address << "</td></tr>";
     html_out << "<tr><th>Size</th><td>" << sh.m_size << "</td></tr>";
     html_out << "<tr><th>Asso Idx</th><td>" << sh.m_asso_idx << "</td></tr>";

@@ -4,6 +4,7 @@ import collections
 import html
 
 Enum = collections.namedtuple( 'Enum', [ 'name', 'int_type', 'values' ] )
+Bitfield = collections.namedtuple( 'Bitfield', [ 'name', 'int_type', 'values' ] )
 
 Enums = [
     Enum( name = 'SectionType',
@@ -111,6 +112,26 @@ Enums = [
     )
 ]
 
+
+Bitfields = [
+    Bitfield( name = 'SectionFlags',
+        int_type = 'uint64_t',
+        values = [
+            ( 'SHF_WRITE',            (1 <<  0), 'Writable' ),
+            ( 'SHF_ALLOC',            (1 <<  1), 'Occupies memory during execution' ),
+            ( 'SHF_EXECINSTR',        (1 <<  2), 'Executable' ),
+            ( 'SHF_MERGE',            (1 <<  4), 'Might be merged' ),
+            ( 'SHF_STRINGS',          (1 <<  5), 'Contains nul-terminated strings' ),
+            ( 'SHF_INFO_LINK',        (1 <<  6), '`sh_info` contains SHT index' ),
+            ( 'SHF_LINK_ORDER',       (1 <<  7), 'Preserve order after combining' ),
+            ( 'SHF_OS_NONCONFORMING', (1 <<  8), 'Non-standard OS specific handling required' ),
+            ( 'SHF_GROUP',            (1 <<  9), 'Section is member of a group' ),
+            ( 'SHF_TLS',              (1 << 10), 'Section hold thread-local data' ),
+            ( 'SHF_COMPRESSED',       (1 << 11), 'Section with compressed data' ),
+        ],
+    ),
+]
+
 def gen_enums_hpp():
     out = []
     out.append( '#include <iostream>' )
@@ -138,9 +159,56 @@ def gen_enums_hpp():
                 out.append( f"        out << \"<span onclick=\\\"javascript:addPopup(event, '{v[0]}' );\\\">{v[0]}</span>\";" )
             out.append( f"        return out;" )
         out.append( "    }" )
-        out.append( "    out << \"\\033[31mUnknown( \" << static_cast< int >( e ) << \" )\\033[0m\";" )
+        out.append( "    out << \"Unknown( \" << static_cast< int >( e ) << \" )\";" )
         out.append( "    return out;" )
         out.append( "}" )
+
+    for b in Bitfields:
+        out.append( f"enum class {b.name} : {b.int_type}" )
+        out.append( "{" )
+        for v in b.values:
+            out.append( f"    {v[0]} = {v[1]}," )
+        out.append( "};" )
+        out.append( "" )
+
+        out.append( "inline" )
+        out.append( f"bool operator&( {b.name} a, {b.name} b )" )
+        out.append( "{" )
+        out.append( f"    return static_cast< {b.int_type} >( a ) & static_cast< {b.int_type} >( b );" )
+        out.append( "}" )
+        out.append( "" )
+
+        out.append( "inline" )
+        out.append( f"std::ostream& operator<<( std::ostream &out, {b.name} b )" )
+        out.append( "{" )
+        out.append( f"    bool need_separator = false;" )
+
+        for v in b.values:
+            out.append( f"    if ( b & {b.name}::{v[0]} )" )
+            out.append(  "    {" )
+            out.append(  "        if ( need_separator )" )
+            out.append(  "        {" )
+            out.append(  "            out << \" | \";" )
+            out.append(  "        }" )
+            out.append(  "        need_separator = true;" )
+            if len( v ) == 2:
+                out.append( f"        out << \"{v[0]}\";" )
+            else:
+                out.append( f"        out << \"<span onclick=\\\"javascript:addPopup(event, '{v[0]}' );\\\">{v[0]}</span>\";" )
+            out.append( f"        b = static_cast< {b.name} >( static_cast< { b.int_type } >( b ) - {v[1]} );" )
+            out.append(  "    }" )
+
+        out.append( f"    if ( static_cast< {b.int_type} >( b ) != 0 )" )
+        out.append( "    {" )
+        out.append( "        if ( need_separator )" )
+        out.append( "        {" )
+        out.append( "            out << \" | \";" )
+        out.append( "        }" )
+        out.append( "        out << \"Unknown( \" << static_cast< int >( b ) << \" )\";" )
+        out.append( "    }" )
+        out.append( "    return out;" )
+        out.append( "}" )
+        out.append( "" )
 
     with open( 'out/gen/enums.hpp', 'w' ) as f:
         f.write( '\n'.join( out ) + '\n' )
@@ -148,7 +216,7 @@ def gen_enums_hpp():
 def gen_enums_js():
     with open( 'out/gen/enums.js', 'w' ) as f:
         f.write( 'let enum_info = {\n' )
-        for e in Enums:
+        for e in Enums + Bitfields:
             f.write( f"\n" )
             f.write( f"    // Enum values for {e.name}\n" )
             f.write( f"\n" )
