@@ -30,7 +30,7 @@ static void RenderAsStringTable( std::ostream &html_out, std::string_view s )
         return;
     }
 
-    html_out << "<table><tr><th class=\"sticky-th\">String Offset</th><th class=\"sticky-th\">Value</th></tr>";
+    html_out << "<table class=\"sticky-header\"><tr><th>String Offset</th><th>Value</th></tr>";
 
     bool row_open = false;
     for ( size_t i = 0; i < s.size(); ++i )
@@ -78,17 +78,17 @@ std::string escape( const std::string &s )
 static void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &symbols )
 {
     html_out << R"(
-<table border="1" cellspacing="0" style="word-break: break-all;">
+<table class="sticky-header" border="1" cellspacing="0" style="word-break: break-all;">
   <thead>
     <tr>
-      <th class="sticky-th">Symbol</th>
-      <th class="sticky-th" width="200">Name</th>
-      <th class="sticky-th">Bind</th>
-      <th class="sticky-th">Type</th>
-      <th class="sticky-th">Visibility</th>
-      <th class="sticky-th">Section Idx</th>
-      <th class="sticky-th">Value</th>
-      <th class="sticky-th">Size</th>
+      <th>Symbol</th>
+      <th width="200">Name</th>
+      <th>Bind</th>
+      <th>Type</th>
+      <th>Visibility</th>
+      <th>Section Idx</th>
+      <th>Value</th>
+      <th>Size</th>
     </tr>
   </thead>
   <tbody>
@@ -114,20 +114,20 @@ static void RenderSectionHeaders( std::ostream &html_out,
                            const std::vector< Section > &sections )
 {
     html_out << R"(
-<table border="1" cellspacing="0" style="word-break: break-all;">
+<table class="sticky-header" border="1" cellspacing="0" style="word-break: break-all;">
   <thead>
     <tr id="section-headers-header-row">
-      <th class="sticky-th">Section Header</th>
-      <th class="sticky-th" width="200">Name</th>
-      <th class="sticky-th">Type</th>
-      <th class="sticky-th">Attrs</th>
-      <th class="sticky-th">Address</th>
-      <th class="sticky-th">Offset</th>
-      <th class="sticky-th">Size</th>
-      <th class="sticky-th">Asso Idx</th>
-      <th class="sticky-th">Info</th>
-      <th class="sticky-th">Addr Align</th>
-      <th class="sticky-th">Ent Size</th>
+      <th>Section Header</th>
+      <th width="200">Name</th>
+      <th>Type</th>
+      <th>Attrs</th>
+      <th>Address</th>
+      <th>Offset</th>
+      <th>Size</th>
+      <th>Asso Idx</th>
+      <th>Info</th>
+      <th>Addr Align</th>
+      <th>Ent Size</th>
     </tr>
   </thead>
   <tbody>
@@ -312,7 +312,7 @@ struct SectionHtmlRenderer
         const SectionHeader &sh = m_sections[ m_cur_section_idx ].m_header;
         const SymbolTable &symtab = std::get< SymbolTable >( m_sections[ sh.m_asso_idx ].m_var ); // TODO assert
 
-        html_out << "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th class=\"sticky-th\">Relocation Entry</th><th class=\"sticky-th\">Offset</th><th class=\"sticky-th\">Sym</th><th class=\"sticky-th\">Type</th><th class=\"sticky-th\">Addend</th></tr>";
+        html_out << "<table class=\"sticky-header\" border=\"1\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Relocation Entry</th><th>Offset</th><th>Sym</th><th>Type</th><th>Addend</th></tr>";
         for ( size_t entry_idx = 0; entry_idx < reloc.m_entries.size(); ++entry_idx )
         {
             const RelocationEntry &entry = reloc.m_entries[ entry_idx ];
