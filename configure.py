@@ -48,6 +48,8 @@ build out/web/hello.o.gif: run_cp web/hello.o.gif
 build out/web/style.css: run_cp web/style.css
 build out/web/test.html: run_cp web/test.html
 
+build out/web/astronaut100.png: run_cp web/astronaut100.png
+
 build out/src/hello.o: compile src/hello.cpp
 
 rule run_xxd
