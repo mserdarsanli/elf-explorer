@@ -87,15 +87,6 @@ int my_main( int argc, char* argv[] )
     }
 
     html_out << R"(
-<script>
-  console.log( 'Enabling float Thead for: ', $('#table-section-headers') );
-  $('#table-section-headers').floatThead({
-position: 'fixed'
-});
-  $('#table-symbols').floatThead({
-position: 'fixed'
-});
-</script>
 </body></html>
 )";
 
