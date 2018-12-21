@@ -33,7 +33,7 @@ table.sticky-header td {
     vertical-align: top;
 }
 
-.section_header_anchor {
+.sticky-anchor {
     display: block;
     position: relative;
     top: calc( var( --sticky-header-height ) * -1 - 4px );

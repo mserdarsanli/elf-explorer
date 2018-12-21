@@ -158,7 +158,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
         const SectionHeader &sh = sections[ i ].m_header;
 
         html_out << "<tr>"
-                 << "<td><a class=\"section_header_anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
+                 << "<td><a class=\"sticky-anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
                  << "<td>" << sh.m_attrs << "</td>"
