@@ -24,12 +24,6 @@ table.sticky-header th {
     background: lightblue;
 }
 
-#symbols-header-row {
-    height: var( --symbols-table-thead-height );
-    background-color: #eee;
-}
-
-
 .popup {
     position: absolute;
     width: 300px;
