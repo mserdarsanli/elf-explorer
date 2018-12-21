@@ -50,7 +50,7 @@ static StringTable LoadStringTable( InputBuffer &input, uint64_t section_offset,
     return res;
 }
 
-static Symbol LoadSymbol( InputBuffer &input, StringTable &strtab, uint64_t offset )
+static Symbol LoadSymbol( InputBuffer &input, const StringTable &strtab, uint64_t offset )
 {
     Symbol res;
 
@@ -141,18 +141,6 @@ struct ELF_Loader
         {
             m_sections[ i ].m_header = LoadSectionHeader( m_input, shstrtab, m_section_header_offset + m_section_header_entry_size * i );
         }
-
-
-        // TODO remove this?
-        for ( size_t i = 0; i < m_sections.size(); ++i )
-        {
-            const SectionHeader &sh = m_sections[ i ].m_header;
-
-            if ( sh.m_name == ".strtab" )
-            {
-                m_strtab = LoadStringTable( m_input, sh.m_offset, sh.m_size );
-            }
-        }
     }
 
     void LoadSections()
@@ -196,13 +184,21 @@ struct ELF_Loader
         {
             ASSERT( sh.m_ent_size == 24 );
 
+            // Get strtab used
+            const StringTable &strtab = [ this, &sh ]() -> const StringTable&
+            {
+                const Section &s = this->GetSection( sh.m_asso_idx );
+                ASSERT( std::holds_alternative< StringTable >( s.m_var ) );
+                return std::get< StringTable >( s.m_var );
+            }();
+
             SymbolTable &symtab = m_sections[ idx ].m_var.emplace< SymbolTable >();
 
             symtab.m_symbols.reserve( sh.m_size / sh.m_ent_size );
 
             for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
             {
-                symtab.m_symbols.emplace_back( LoadSymbol( m_input, *m_strtab, sh.m_offset + 24 * i ) );
+                symtab.m_symbols.emplace_back( LoadSymbol( m_input, strtab, sh.m_offset + 24 * i ) );
             }
 
             break;
@@ -275,8 +271,6 @@ struct ELF_Loader
 
     std::vector< bool > m_section_loading;
     std::vector< Section > m_sections;
-
-    std::optional< StringTable > m_strtab;
 };
 
 ELF_File ELF_File::LoadFrom( InputBuffer &input )
