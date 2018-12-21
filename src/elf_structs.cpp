@@ -1,5 +1,44 @@
 #include "elf_structs.hpp"
 
+#include <functional>
+
+class ScopeGuard
+{
+public:
+    ScopeGuard() = default;
+    ScopeGuard( const ScopeGuard &ot ) = delete;
+
+    explicit ScopeGuard( std::function< void() > fn )
+        : m_fn( fn )
+        , m_enabled( true )
+    {
+    }
+
+    ScopeGuard( ScopeGuard &&ot )
+        : m_fn( std::move( ot.m_fn ) )
+        , m_enabled( ot.m_enabled )
+    {
+        ot.m_enabled = false;
+    }
+
+    ~ScopeGuard()
+    {
+        if ( m_enabled )
+        {
+            m_fn();
+        }
+    }
+
+private:
+    std::function< void() > m_fn;
+    bool m_enabled = false;
+};
+
+ScopeGuard RunAtExit( std::function< void() > fn )
+{
+    return ScopeGuard( fn );
+}
+
 static StringTable LoadStringTable( InputBuffer &input, uint64_t section_offset, uint64_t size )
 {
     StringTable res;
@@ -11,7 +50,7 @@ static StringTable LoadStringTable( InputBuffer &input, uint64_t section_offset,
     return res;
 }
 
-static Symbol LoadSymbol( InputBuffer &input, StringTable &strtab, uint64_t offset )
+static Symbol LoadSymbol( InputBuffer &input, const StringTable &strtab, uint64_t offset )
 {
     Symbol res;
 
@@ -96,21 +135,11 @@ struct ELF_Loader
         StringTable shstrtab = LoadStringTable( m_input, shstrtab_offset, shstrtab_len );
 
         m_sections.resize( m_section_header_num_entries );
+        m_section_loading.resize( m_section_header_num_entries, false );
+
         for ( int i = 0; i < m_section_header_num_entries; ++i )
         {
             m_sections[ i ].m_header = LoadSectionHeader( m_input, shstrtab, m_section_header_offset + m_section_header_entry_size * i );
-        }
-
-
-        // TODO remove this?
-        for ( size_t i = 0; i < m_sections.size(); ++i )
-        {
-            const SectionHeader &sh = m_sections[ i ].m_header;
-
-            if ( sh.m_name == ".strtab" )
-            {
-                m_strtab = LoadStringTable( m_input, sh.m_offset, sh.m_size );
-            }
         }
     }
 
@@ -124,8 +153,19 @@ struct ELF_Loader
         }
     }
 
+    const Section& GetSection( size_t idx )
+    {
+        LoadSection( idx );
+        return m_sections[ idx ];
+    }
+
     void LoadSection( size_t idx )
     {
+        ASSERT( m_section_loading[ idx ] == false );
+
+        m_section_loading[ idx ] = true;
+        auto sg = RunAtExit( [ this, idx ](){ this->m_section_loading[ idx ] = false; } );
+
         if ( ! std::holds_alternative< std::monostate >( m_sections[ idx ].m_var ) )
         {
             return;
@@ -144,13 +184,21 @@ struct ELF_Loader
         {
             ASSERT( sh.m_ent_size == 24 );
 
+            // Get strtab used
+            const StringTable &strtab = [ this, &sh ]() -> const StringTable&
+            {
+                const Section &s = this->GetSection( sh.m_asso_idx );
+                ASSERT( std::holds_alternative< StringTable >( s.m_var ) );
+                return std::get< StringTable >( s.m_var );
+            }();
+
             SymbolTable &symtab = m_sections[ idx ].m_var.emplace< SymbolTable >();
 
             symtab.m_symbols.reserve( sh.m_size / sh.m_ent_size );
 
             for ( uint64_t i = 0; i * 24 < sh.m_size; ++i )
             {
-                symtab.m_symbols.emplace_back( LoadSymbol( m_input, *m_strtab, sh.m_offset + 24 * i ) );
+                symtab.m_symbols.emplace_back( LoadSymbol( m_input, strtab, sh.m_offset + 24 * i ) );
             }
 
             break;
@@ -221,9 +269,8 @@ struct ELF_Loader
     uint16_t m_section_header_num_entries;
     uint16_t m_section_names_header_index;
 
+    std::vector< bool > m_section_loading;
     std::vector< Section > m_sections;
-
-    std::optional< StringTable > m_strtab;
 };
 
 ELF_File ELF_File::LoadFrom( InputBuffer &input )
