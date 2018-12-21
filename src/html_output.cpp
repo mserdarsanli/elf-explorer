@@ -136,7 +136,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
     html_out << R"(
 <table class="sticky-header" border="1" cellspacing="0" style="word-break: break-all;">
   <thead>
-    <tr id="section-headers-header-row">
+    <tr>
       <th>Section Header</th>
       <th width="200">Name</th>
       <th>Type</th>
