@@ -2,6 +2,8 @@
 
 #include <functional>
 
+namespace elfexplorer {
+
 class ScopeGuard
 {
 public:
@@ -290,3 +292,5 @@ std::string_view StringTable::StringAtOffset( uint64_t string_offset ) const
 {
     return m_str.data() + string_offset;
 }
+
+} // namespace elfexplorer

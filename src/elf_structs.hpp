@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ELFEXPLORER__ELF_STRUCTS_HPP__
+#define ELFEXPLORER__ELF_STRUCTS_HPP__
 
 #include <algorithm>
 #include <cstdint>
@@ -11,6 +12,8 @@
 
 #include "enums.hpp"
 #include "input_buffer.hpp"
+
+namespace elfexplorer {
 
 struct StringTable
 {
@@ -105,3 +108,7 @@ struct ELF_File
 
     std::vector< Section > m_sections;
 };
+
+} // namspace elfexplorer
+
+#endif // ELFEXPLORER__ELF_STRUCTS_HPP__

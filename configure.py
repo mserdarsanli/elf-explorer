@@ -42,7 +42,7 @@ rule emcc_nasm_compile
     command = $emcc -MMD -MF $out.d -g $nasm_cppflags -c $in -o $out
 
 rule emcc_link
-    command = $emcc -s "EXPORTED_FUNCTIONS=['_run_example', '_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
+    command = $emcc -s "EXPORTED_FUNCTIONS=['_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 
 build out/web/hello.o.gif: run_cp web/hello.o.gif
 build out/web/style.css: run_cp web/style.css
@@ -86,7 +86,7 @@ objexp_sources = [
     'src/elf_structs.cpp',
     'src/html_output.cpp',
     'src/input_buffer.cpp',
-    'src/symbol_renamer.cpp',
+    'src/elf_explorer.cpp',
 ]
 
 nasm_objects = [ 'out/cpp/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
@@ -113,7 +113,7 @@ def main():
         for src, obj in zip( objexp_sources, emcc_objexp_objects ):
             ninja.write( f'build {obj}: emcc_compile {src}\n' )
 
-        ninja.write( f'build out/symbol_renamer: link {" ".join( objexp_objects ) } out/cpp/disasm_lib.a\n' )
+        ninja.write( f'build out/elf_explorer: link {" ".join( objexp_objects ) } out/cpp/disasm_lib.a\n' )
         ninja.write( f'build out/web/object_explorer.js: emcc_link {" ".join( emcc_nasm_objects + emcc_objexp_objects ) }\n' )
 
 

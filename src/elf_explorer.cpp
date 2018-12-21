@@ -11,7 +11,8 @@
 
 #include "elf_structs.hpp"
 #include "html_output.hpp"
-#include "test_data.hpp" // This should go away when emcc can open any file TODO
+
+using namespace elfexplorer;
 
 static std::vector< unsigned char > read_file( const char *file_name )
 {
@@ -41,11 +42,7 @@ int my_main( int argc, char* argv[] )
     }
 
     std::vector< unsigned char > obj_file_contents;
-    if ( argv[ 1 ] == std::string_view( "--test-data" ) )
-    {
-        obj_file_contents.assign( out_src_prog1_o, out_src_prog1_o + out_src_prog1_o_len );
-    }
-    else if ( argv[ 1 ] == std::string_view( "--mem-data" ) )
+    if ( argv[ 1 ] == std::string_view( "--mem-data" ) )
     {
         obj_file_contents = mem_data;
     }
@@ -109,13 +106,6 @@ int main( int argc, char* argv[] )
 }
 
 extern "C" {
-void run_example()
-{
-    char arg1[] = "foo";
-    char arg2[] = "--test-data";
-    char* args[3] = { arg1, arg2, nullptr };
-    my_main( 2, args );
-}
 
 char* run_with_buffer( const char *data, uint64_t size )
 {
