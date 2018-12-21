@@ -176,7 +176,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
 
 static void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionHeader &sh )
 {
-    html_out << R"(<div style="background-color: #eeeeee;">)";
+    html_out << R"(<div class="section-title">)";
     html_out << R"(<table style="text-align: left;" border="0" cellspacing="0">)";
     html_out << "<tr><th colspan=\"2\"><a style=\"font-size: 200%;\" name=\"section-" << i << "\">Section " << i << ": " << escape( sh.m_name ) << "</a></th></tr>";
     html_out << "<tr><th>Name</th><td>" << escape( sh.m_name ) << "</td></tr>";

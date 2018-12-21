@@ -40,6 +40,14 @@ table.sticky-header td {
     visibility: hidden;
 }
 
+div.section-title {
+    background-color: #eeeeee;
+    border-left: 4px solid darkblue;
+    padding-left: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
 .popup {
     position: absolute;
     width: 300px;
