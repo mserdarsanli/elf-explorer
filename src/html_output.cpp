@@ -376,6 +376,10 @@ void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
 
         std::visit( SectionHtmlRenderer( html_out, elf.m_sections, i ), elf.m_sections[ i ].m_var );
     }
+
+    html_out << R"(
+</body></html>
+)";
 }
 
 } // namespace elfexplorer
