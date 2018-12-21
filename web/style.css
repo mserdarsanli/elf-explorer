@@ -18,10 +18,26 @@
 */
 
 
+:root {
+    --sticky-header-height: 2em;
+}
+
 table.sticky-header th {
     position: sticky;
     top: 0;
     background: lightblue;
+    height: calc( var( --sticky-header-height ) );
+}
+
+table.sticky-header td {
+    vertical-align: top;
+}
+
+.section_header_anchor {
+    display: block;
+    position: relative;
+    top: calc( var( --sticky-header-height ) * -1 - 4px );
+    visibility: hidden;
 }
 
 .popup {
