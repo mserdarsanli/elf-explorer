@@ -1,5 +1,44 @@
 #include "elf_structs.hpp"
 
+#include <functional>
+
+class ScopeGuard
+{
+public:
+    ScopeGuard() = default;
+    ScopeGuard( const ScopeGuard &ot ) = delete;
+
+    explicit ScopeGuard( std::function< void() > fn )
+        : m_fn( fn )
+        , m_enabled( true )
+    {
+    }
+
+    ScopeGuard( ScopeGuard &&ot )
+        : m_fn( std::move( ot.m_fn ) )
+        , m_enabled( ot.m_enabled )
+    {
+        ot.m_enabled = false;
+    }
+
+    ~ScopeGuard()
+    {
+        if ( m_enabled )
+        {
+            m_fn();
+        }
+    }
+
+private:
+    std::function< void() > m_fn;
+    bool m_enabled = false;
+};
+
+ScopeGuard RunAtExit( std::function< void() > fn )
+{
+    return ScopeGuard( fn );
+}
+
 static StringTable LoadStringTable( InputBuffer &input, uint64_t section_offset, uint64_t size )
 {
     StringTable res;
@@ -96,6 +135,8 @@ struct ELF_Loader
         StringTable shstrtab = LoadStringTable( m_input, shstrtab_offset, shstrtab_len );
 
         m_sections.resize( m_section_header_num_entries );
+        m_section_loading.resize( m_section_header_num_entries, false );
+
         for ( int i = 0; i < m_section_header_num_entries; ++i )
         {
             m_sections[ i ].m_header = LoadSectionHeader( m_input, shstrtab, m_section_header_offset + m_section_header_entry_size * i );
@@ -124,8 +165,19 @@ struct ELF_Loader
         }
     }
 
+    const Section& GetSection( size_t idx )
+    {
+        LoadSection( idx );
+        return m_sections[ idx ];
+    }
+
     void LoadSection( size_t idx )
     {
+        ASSERT( m_section_loading[ idx ] == false );
+
+        m_section_loading[ idx ] = true;
+        auto sg = RunAtExit( [ this, idx ](){ this->m_section_loading[ idx ] = false; } );
+
         if ( ! std::holds_alternative< std::monostate >( m_sections[ idx ].m_var ) )
         {
             return;
@@ -221,6 +273,7 @@ struct ELF_Loader
     uint16_t m_section_header_num_entries;
     uint16_t m_section_names_header_index;
 
+    std::vector< bool > m_section_loading;
     std::vector< Section > m_sections;
 
     std::optional< StringTable > m_strtab;
