@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ELFEXPLORER__ELF_STRUCTS_HPP__
+#define ELFEXPLORER__ELF_STRUCTS_HPP__
 
 #include <algorithm>
 #include <cstdint>
@@ -105,3 +106,5 @@ struct ELF_File
 
     std::vector< Section > m_sections;
 };
+
+#endif // ELFEXPLORER__ELF_STRUCTS_HPP__
