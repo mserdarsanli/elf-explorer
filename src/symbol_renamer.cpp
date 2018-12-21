@@ -12,6 +12,8 @@
 #include "elf_structs.hpp"
 #include "html_output.hpp"
 
+using namespace elfexplorer;
+
 static std::vector< unsigned char > read_file( const char *file_name )
 {
     std::vector< unsigned char > contents;

@@ -13,6 +13,8 @@
 #include "enums.hpp"
 #include "input_buffer.hpp"
 
+namespace elfexplorer {
+
 struct StringTable
 {
     std::string_view StringAtOffset( uint64_t string_offset ) const;
@@ -106,5 +108,7 @@ struct ELF_File
 
     std::vector< Section > m_sections;
 };
+
+} // namspace elfexplorer
 
 #endif // ELFEXPLORER__ELF_STRUCTS_HPP__

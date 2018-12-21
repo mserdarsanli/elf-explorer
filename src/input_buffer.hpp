@@ -14,6 +14,7 @@
     }
 
 
+namespace elfexplorer {
 
 class InputBuffer
 {
@@ -36,5 +37,7 @@ public: // TODO make private
     mutable std::vector< bool > m_read; // Mark all the read bytes
     std::string file_name;
 };
+
+} // namespace elfexplorer
 
 #endif // ELFEXPLORER__INPUT_BUFFER_HPP__

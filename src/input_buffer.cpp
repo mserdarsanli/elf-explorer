@@ -1,5 +1,7 @@
 #include "input_buffer.hpp"
 
+namespace elfexplorer {
+
 InputBuffer::InputBuffer( std::string file_name_, std::vector< unsigned char > &&contents_ )
     : contents( std::move( contents_ ) )
     , m_read( contents.size(), false )
@@ -64,3 +66,4 @@ uint64_t InputBuffer::U64At( uint64_t offset ) const
     return res;
 }
 
+} // namespace elfexplorer

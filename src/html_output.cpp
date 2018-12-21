@@ -6,6 +6,8 @@
 
 #include "wrap_nasm.h"
 
+namespace elfexplorer {
+
 static std::string demangle( const std::string &mangled_name )
 {
     int status;
@@ -357,3 +359,5 @@ void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
         std::visit( SectionHtmlRenderer( html_out, elf.m_sections, i ), elf.m_sections[ i ].m_var );
     }
 }
+
+} // namespace elfexplorer
