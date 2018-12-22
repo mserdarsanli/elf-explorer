@@ -98,12 +98,8 @@ int my_main( int argc, char* argv[] )
             continue;
         }
 
-        html_out << "Unread [ " << unread_begin - begin << ", " << unread_end - begin << " )\n";
+        std::cerr << "Unread [ " << unread_begin - begin << ", " << unread_end - begin << " )\n";
     }
-
-    html_out << R"(
-</body></html>
-)";
 
     // TODO clean up this creap
     if ( argv[ 1 ] == std::string_view( "--mem-data" ) )

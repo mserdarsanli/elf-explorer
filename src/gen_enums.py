@@ -174,7 +174,7 @@ def gen_enums_hpp():
             if len( v ) == 2:
                 out.append( f"        out << \"{v[0]}\";" )
             else:
-                out.append( f"        out << \"<span onclick=\\\"javascript:addPopup(event, '{v[0]}' );\\\">{v[0]}</span>\";" )
+                out.append( f"        out << \"<span class=\\\"enum-val\\\" onclick=\\\"javascript:addPopup(event, '{v[0]}' );\\\">{v[0]}</span>\";" )
             out.append( f"        return out;" )
         out.append( "    }" )
         out.append( "    out << \"Unknown( \" << static_cast< int >( e ) << \" )\";" )
@@ -212,7 +212,7 @@ def gen_enums_hpp():
             if len( v ) == 2:
                 out.append( f"        out << \"{v[0]}\";" )
             else:
-                out.append( f"        out << \"<span onclick=\\\"javascript:addPopup(event, '{v[0]}' );\\\">{v[0]}</span>\";" )
+                out.append( f"        out << \"<span class=\\\"enum-val\\\" onclick=\\\"javascript:addPopup(event, '{v[0]}' );\\\">{v[0]}</span>\";" )
             out.append( f"        b = static_cast< {b.name} >( static_cast< { b.int_type } >( b ) - {v[1]} );" )
             out.append(  "    }" )
 

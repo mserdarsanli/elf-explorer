@@ -18,17 +18,40 @@
 */
 
 
+:root {
+    --sticky-header-height: 2em;
+}
+
 table.sticky-header th {
     position: sticky;
     top: 0;
     background: lightblue;
+    height: calc( var( --sticky-header-height ) );
 }
 
-#symbols-header-row {
-    height: var( --symbols-table-thead-height );
-    background-color: #eee;
+table.sticky-header td {
+    vertical-align: top;
 }
 
+.sticky-anchor {
+    display: block;
+    position: relative;
+    top: calc( var( --sticky-header-height ) * -1 - 4px );
+    visibility: hidden;
+}
+
+div.section-title {
+    background-color: #eeeeee;
+    border-left: 4px solid darkblue;
+    padding-left: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.enum-val {
+    background-color: #eaf2ff;
+    cursor: pointer;
+}
 
 .popup {
     position: absolute;

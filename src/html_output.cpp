@@ -134,9 +134,9 @@ static void RenderSectionHeaders( std::ostream &html_out,
                            const std::vector< Section > &sections )
 {
     html_out << R"(
-<table class="sticky-header" border="1" cellspacing="0" style="word-break: break-all;">
+<table class="sticky-header" border="1" cellspacing="0" cellpadding="3" style="word-break: break-all;">
   <thead>
-    <tr id="section-headers-header-row">
+    <tr>
       <th>Section Header</th>
       <th width="200">Name</th>
       <th>Type</th>
@@ -158,7 +158,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
         const SectionHeader &sh = sections[ i ].m_header;
 
         html_out << "<tr>"
-                 << "<td><a class=\"section_header_anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
+                 << "<td><a class=\"sticky-anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
                  << "<td>" << sh.m_attrs << "</td>"
@@ -176,7 +176,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
 
 static void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionHeader &sh )
 {
-    html_out << R"(<div style="background-color: #eeeeee;">)";
+    html_out << R"(<div class="section-title">)";
     html_out << R"(<table style="text-align: left;" border="0" cellspacing="0">)";
     html_out << "<tr><th colspan=\"2\"><a style=\"font-size: 200%;\" name=\"section-" << i << "\">Section " << i << ": " << escape( sh.m_name ) << "</a></th></tr>";
     html_out << "<tr><th>Name</th><td>" << escape( sh.m_name ) << "</td></tr>";
@@ -376,6 +376,10 @@ void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
 
         std::visit( SectionHtmlRenderer( html_out, elf.m_sections, i ), elf.m_sections[ i ].m_var );
     }
+
+    html_out << R"(
+</body></html>
+)";
 }
 
 } // namespace elfexplorer
