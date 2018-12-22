@@ -18,6 +18,10 @@
 
 #include "html_output.hpp"
 
+// TODO usa fmtlib and remove ios & iomanip
+#include <ios>
+#include <iomanip>
+
 #include <sstream>
 
 #include <cxxabi.h>
@@ -283,31 +287,19 @@ struct SectionHtmlRenderer
                 std::string_view data = static_cast< std::pair< std::string_view, std::stringstream >* >( user_data )->first;
                 std::stringstream &disasm_out = static_cast< std::pair< std::string_view, std::stringstream >* >( user_data )->second;
 
-                // TODO use fmtlib?
-                char out_buf[ 500 ];
-                char *out = out_buf;
-
-                out += sprintf( out, "%8d     ", offset );
-                for ( int i = 0; i < 15; ++i )
+                disasm_out << "<tr><td>" << std::setw( 8 ) << std::setfill( '0' ) << offset << "</td><td>";
+                for ( int i = 0; i < len; ++i )
                 {
-                    if ( i < len )
-                    {
-                        out += sprintf( out, "%02X ", static_cast< unsigned char >( data[ offset + i ] ) );
-                    }
-                    else
-                    {
-                        out += sprintf( out, "   " );
-                    }
+                    disasm_out << std::hex << std::setw( 2 ) << (int)static_cast< unsigned char >( data[ offset + i ] ) << " " << std::dec;
                 }
 
-                out += sprintf( out, "%s\n", instruction_str );
-
-                disasm_out << out_buf;
+                disasm_out << "</td><td>" << escape( instruction_str ) << "</td></tr>";
             };
 
             DisasmExecutableSection( reinterpret_cast< unsigned char* >( const_cast< char* >( s.m_data.data() ) ), s.m_data.size(), fp, static_cast< void* >( &state ) );
 
-            html_out << "<pre style=\"padding-left: 50px;\">" << escape( state.second.str() ) << "</pre>";
+            // html_out << "<pre style=\"padding-left: 50px;\">" << escape( state.second.str() ) << "</pre>";
+            html_out << "<div class=\"assembly-code\"><table>" << state.second.str() << "</table></div>";
             html_out << "<pre style=\"padding-left: 50px;\"> Found " << reloc_entries.size() << " relocation entries.." << "</pre>";
         }
         else
