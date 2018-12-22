@@ -259,6 +259,22 @@ struct SectionHtmlRenderer
     {
         if ( s.m_is_executable )
         {
+            std::cerr << "Rendering section " << m_cur_section_idx << "\n";
+            // Check next section for relocation entries
+            // TODO this is wrong! it could be in another section
+            // TODO also check if there could be multiple relocation sections for a progbits section
+
+            const std::vector< RelocationEntry > empty_entries;
+            const std::vector< RelocationEntry > &reloc_entries = [&]() -> const std::vector< RelocationEntry > &
+            {
+                if ( m_sections[ m_cur_section_idx + 1 ].m_header.m_type == SectionType::SHT_RELA
+                  && m_sections[ m_cur_section_idx + 1 ].m_header.m_info == m_cur_section_idx )
+                {
+                    return std::get< RelocationEntries >( m_sections[ m_cur_section_idx + 1 ].m_var ).m_entries;
+                }
+                return empty_entries;
+            }();
+
             std::pair< std::string_view, std::stringstream > state;
             state.first = s.m_data;
 
@@ -292,6 +308,7 @@ struct SectionHtmlRenderer
             DisasmExecutableSection( reinterpret_cast< unsigned char* >( const_cast< char* >( s.m_data.data() ) ), s.m_data.size(), fp, static_cast< void* >( &state ) );
 
             html_out << "<pre style=\"padding-left: 50px;\">" << escape( state.second.str() ) << "</pre>";
+            html_out << "<pre style=\"padding-left: 50px;\"> Found " << reloc_entries.size() << " relocation entries.." << "</pre>";
         }
         else
         {
