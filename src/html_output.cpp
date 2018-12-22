@@ -134,7 +134,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
                            const std::vector< Section > &sections )
 {
     html_out << R"(
-<table class="sticky-header" border="1" cellspacing="0" style="word-break: break-all;">
+<table class="sticky-header" border="1" cellspacing="0" cellpadding="3" style="word-break: break-all;">
   <thead>
     <tr>
       <th>Section Header</th>
