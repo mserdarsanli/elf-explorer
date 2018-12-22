@@ -251,6 +251,7 @@ struct SectionHtmlRenderer
                 std::vector< RelocationEntry > reloc_entries;
                 std::vector< RelocationEntry >::const_iterator reloc_it;
                 int reloc_size = 4; // TODO this should be derived by reloc type
+                const SymbolTable *symtab = nullptr;
 
                 std::string_view data;
                 std::stringstream disasm_out;
@@ -265,6 +266,19 @@ struct SectionHtmlRenderer
               && m_sections[ m_cur_section_idx + 1 ].m_header.m_info == m_cur_section_idx )
             {
                 state.reloc_entries = std::get< RelocationEntries >( m_sections[ m_cur_section_idx + 1 ].m_var ).m_entries;
+
+                uint32_t symtab_idx = m_sections[ m_cur_section_idx + 1 ].m_header.m_asso_idx;
+                if ( symtab_idx < m_sections.size() )
+                {
+                    if ( std::holds_alternative< SymbolTable >( m_sections[ symtab_idx ].m_var ) )
+                    {
+                        state.symtab = &std::get< SymbolTable >( m_sections[ symtab_idx ].m_var );
+                    }
+                }
+            }
+            if ( state.reloc_entries.size() )
+            {
+                ASSERT( state.symtab != nullptr );
             }
 
             std::sort( state.reloc_entries.begin(), state.reloc_entries.end(), []( const auto &a, const auto &b ){ return a.m_offset < b.m_offset; } );
@@ -286,7 +300,7 @@ struct SectionHtmlRenderer
                     if ( st.reloc_it != st.reloc_entries.cend() && st.reloc_it->m_offset + st.reloc_size - 1 == size_t( offset + i ) )
                     {
                         const RelocationEntry &e = *st.reloc_it;
-                        st.disasm_out << "&lt;" << e.m_type << " , " << e.m_symbol << " , " << e.m_addend  << "&gt;";
+                        st.disasm_out << "&lt;" << e.m_type << " , " << st.symtab->m_symbols[ e.m_symbol ].m_name << " , " << e.m_addend  << "&gt;";
                         st.disasm_out << R"(</span>)";
                         ++st.reloc_it;
                     }
