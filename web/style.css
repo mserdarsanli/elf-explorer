@@ -48,6 +48,11 @@ div.section-title {
     margin-bottom: 10px;
 }
 
+.enum-val {
+    background-color: #eaf2ff;
+    cursor: pointer;
+}
+
 .popup {
     position: absolute;
     width: 300px;
