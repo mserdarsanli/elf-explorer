@@ -263,44 +263,57 @@ struct SectionHtmlRenderer
     {
         if ( s.m_is_executable )
         {
-            std::cerr << "Rendering section " << m_cur_section_idx << "\n";
+            struct State
+            {
+                std::vector< RelocationEntry > reloc_entries;
+                std::vector< RelocationEntry >::const_iterator reloc_it;
+                int reloc_size = 4; // TODO this should be derived by reloc type
+
+                std::string_view data;
+                std::stringstream disasm_out;
+            };
+            State state;
+            state.data = s.m_data;
+
             // Check next section for relocation entries
             // TODO this is wrong! it could be in another section
             // TODO also check if there could be multiple relocation sections for a progbits section
-
-            const std::vector< RelocationEntry > empty_entries;
-            const std::vector< RelocationEntry > &reloc_entries = [&]() -> const std::vector< RelocationEntry > &
+            if ( m_sections[ m_cur_section_idx + 1 ].m_header.m_type == SectionType::SHT_RELA
+              && m_sections[ m_cur_section_idx + 1 ].m_header.m_info == m_cur_section_idx )
             {
-                if ( m_sections[ m_cur_section_idx + 1 ].m_header.m_type == SectionType::SHT_RELA
-                  && m_sections[ m_cur_section_idx + 1 ].m_header.m_info == m_cur_section_idx )
-                {
-                    return std::get< RelocationEntries >( m_sections[ m_cur_section_idx + 1 ].m_var ).m_entries;
-                }
-                return empty_entries;
-            }();
+                state.reloc_entries = std::get< RelocationEntries >( m_sections[ m_cur_section_idx + 1 ].m_var ).m_entries;
+            }
 
-            std::pair< std::string_view, std::stringstream > state;
-            state.first = s.m_data;
+            std::sort( state.reloc_entries.begin(), state.reloc_entries.end(), []( const auto &a, const auto &b ){ return a.m_offset < b.m_offset; } );
+            state.reloc_it = state.reloc_entries.cbegin();
 
             auto fp = []( int offset, int len, char *instruction_str, void *user_data )
             {
-                std::string_view data = static_cast< std::pair< std::string_view, std::stringstream >* >( user_data )->first;
-                std::stringstream &disasm_out = static_cast< std::pair< std::string_view, std::stringstream >* >( user_data )->second;
+                State &st = *reinterpret_cast< State* >( user_data );
 
-                disasm_out << "<tr><td>" << std::setw( 8 ) << std::setfill( '0' ) << offset << "</td><td>";
+                st.disasm_out << "<tr><td>" << std::setw( 8 ) << std::setfill( '0' ) << offset << "</td><td>";
                 for ( int i = 0; i < len; ++i )
                 {
-                    disasm_out << std::hex << std::setw( 2 ) << (int)static_cast< unsigned char >( data[ offset + i ] ) << " " << std::dec;
+                    if ( st.reloc_it != st.reloc_entries.cend() && st.reloc_it->m_offset == size_t( offset + i ) )
+                    {
+                        st.disasm_out << R"(<span style="color:red; cursor: pointer;">)";
+                    }
+                    st.disasm_out << std::hex << std::setw( 2 ) << (int)static_cast< unsigned char >( st.data[ offset + i ] ) << " " << std::dec;
+                    if ( st.reloc_it != st.reloc_entries.cend() && st.reloc_it->m_offset + st.reloc_size - 1 == size_t( offset + i ) )
+                    {
+                        st.disasm_out << R"(</span>)";
+                        ++st.reloc_it;
+                    }
                 }
 
-                disasm_out << "</td><td>" << escape( instruction_str ) << "</td></tr>";
+                st.disasm_out << "</td><td>" << escape( instruction_str ) << "</td></tr>";
             };
 
             DisasmExecutableSection( reinterpret_cast< unsigned char* >( const_cast< char* >( s.m_data.data() ) ), s.m_data.size(), fp, static_cast< void* >( &state ) );
 
             // html_out << "<pre style=\"padding-left: 50px;\">" << escape( state.second.str() ) << "</pre>";
-            html_out << "<div class=\"assembly-code\"><table>" << state.second.str() << "</table></div>";
-            html_out << "<pre style=\"padding-left: 50px;\"> Found " << reloc_entries.size() << " relocation entries.." << "</pre>";
+            html_out << "<div class=\"assembly-code\"><table>" << state.disasm_out.str() << "</table></div>";
+            html_out << "<pre style=\"padding-left: 50px;\"> Found " << state.reloc_entries.size() << " relocation entries.." << "</pre>";
         }
         else
         {
