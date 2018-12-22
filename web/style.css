@@ -78,3 +78,11 @@ div.section-title {
     left: 50%;
     transform: translate( -50%, 0% );
 }
+
+
+.assembly-code {
+    font-family: monospace;
+}
+.assembly-code table {
+    border-spacing: 4em 0em;
+}
