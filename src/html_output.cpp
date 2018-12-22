@@ -294,6 +294,7 @@ struct SectionHtmlRenderer
                 st.disasm_out << "<tr><td>" << std::setw( 8 ) << std::setfill( '0' ) << offset << "</td><td>";
                 for ( int i = 0; i < len; ++i )
                 {
+                    // TODO assert reloc size <= instruction size
                     if ( st.reloc_it != st.reloc_entries.cend() && st.reloc_it->m_offset == size_t( offset + i ) )
                     {
                         st.disasm_out << R"(<span style="color:red; cursor: pointer;">)";
@@ -301,6 +302,8 @@ struct SectionHtmlRenderer
                     st.disasm_out << std::hex << std::setw( 2 ) << (int)static_cast< unsigned char >( st.data[ offset + i ] ) << " " << std::dec;
                     if ( st.reloc_it != st.reloc_entries.cend() && st.reloc_it->m_offset + st.reloc_size - 1 == size_t( offset + i ) )
                     {
+                        const RelocationEntry &e = *st.reloc_it;
+                        st.disasm_out << "&lt;" << e.m_type << " , " << e.m_symbol << " , " << e.m_addend  << "&gt;";
                         st.disasm_out << R"(</span>)";
                         ++st.reloc_it;
                     }
@@ -311,9 +314,7 @@ struct SectionHtmlRenderer
 
             DisasmExecutableSection( reinterpret_cast< unsigned char* >( const_cast< char* >( s.m_data.data() ) ), s.m_data.size(), fp, static_cast< void* >( &state ) );
 
-            // html_out << "<pre style=\"padding-left: 50px;\">" << escape( state.second.str() ) << "</pre>";
             html_out << "<div class=\"assembly-code\"><table>" << state.disasm_out.str() << "</table></div>";
-            html_out << "<pre style=\"padding-left: 50px;\"> Found " << state.reloc_entries.size() << " relocation entries.." << "</pre>";
         }
         else
         {
