@@ -41,8 +41,6 @@ rule run_python
 
 build out/gen/enums.hpp out/gen/enums.js: run_python src/gen_enums.py
 
-build out/web/enums.js: run_cp out/gen/enums.js
-
 rule nasm_compile
     depfile = $out.d
     command = $cc -MMD -MF $out.d $nasm_cppflags -c $in -o $out
@@ -61,22 +59,15 @@ rule emcc_nasm_compile
 rule emcc_link
     command = $emcc -s "EXPORTED_FUNCTIONS=['_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 
-build out/web/hello.o.gif: run_cp web/hello.o.gif
-build out/web/style.css: run_cp web/style.css
-build out/web/test.html: run_cp web/test.html
+build out/web/objects/hello.o: compile src/hello.cpp
 
 build out/web/astronaut100.png: run_cp web/astronaut100.png
+build out/web/elf-explorer.js:  run_cp web/elf-explorer.js
+build out/web/enums.js:         run_cp out/gen/enums.js
+build out/web/hello.o.gif:      run_cp web/hello.o.gif
+build out/web/style.css:        run_cp web/style.css
+build out/web/test.html:        run_cp web/test.html
 
-build out/src/hello.o: compile src/hello.cpp
-
-rule run_xxd
-    command = xxd -i < $in > $out
-build out/gen/hello.xxd: run_xxd out/src/hello.o
-
-rule embed_hello_file
-    command = sed -e '/EMBED_FILE_HERE/{r out/gen/hello.xxd' -e 'd}' $in > $out
-
-build out/web/elf-explorer.js: embed_hello_file web/elf-explorer.js | out/gen/hello.xxd
 '''
 
 nasm_sources = [
