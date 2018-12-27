@@ -64,9 +64,14 @@ build out/web/objects/hello.o: compile src/hello.cpp
 build out/web/astronaut100.png: run_cp web/astronaut100.png
 build out/web/elf-explorer.js:  run_cp web/elf-explorer.js
 build out/web/enums.js:         run_cp out/gen/enums.js
-build out/web/hello.o.gif:      run_cp web/hello.o.gif
 build out/web/style.css:        run_cp web/style.css
 build out/web/test.html:        run_cp web/test.html
+
+rule build_object_image
+    command = python3 web/create-object-image.py --out $out --label $label
+
+build out/web/hello.o.gif: build_object_image
+    label = hello.o
 
 '''
 
