@@ -59,8 +59,6 @@ rule emcc_nasm_compile
 rule emcc_link
     command = $emcc -s "EXPORTED_FUNCTIONS=['_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 
-build out/web/objects/hello.o: compile src/hello.cpp
-
 build out/web/astronaut100.png: run_cp web/astronaut100.png
 build out/web/elf-explorer.js:  run_cp web/elf-explorer.js
 build out/web/enums.js:         run_cp out/gen/enums.js
@@ -70,8 +68,13 @@ build out/web/test.html:        run_cp web/test.html
 rule build_object_image
     command = python3 web/create-object-image.py --out $out --label $label
 
+build out/web/objects/hello.o: compile src/hello.cpp
 build out/web/hello.o.gif: build_object_image
     label = hello.o
+
+build out/web/objects/vector.o: compile src/vector.cpp
+build out/web/vector.o.gif: build_object_image
+    label = vector.o
 
 '''
 

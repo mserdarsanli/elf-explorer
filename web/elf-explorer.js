@@ -36,10 +36,8 @@ function replacePageWith( htmlContents ) {
   document.getElementsByTagName( 'html' )[0].innerHTML = htmlContents;
 }
 
-async function useExampleObject() {
-
-  var exampleObjectFile = await fetch( 'objects/hello.o' ).then( ( v ) => v.arrayBuffer() );
-  console.log( 'Allocationg for: ', exampleObjectFile );
+async function useExampleObject( objPath ) {
+  var exampleObjectFile = await fetch( objPath ).then( ( v ) => v.arrayBuffer() );
 
   var arr = new Uint8Array( exampleObjectFile );
   console.log( arr );
@@ -54,24 +52,9 @@ document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
   ev.preventDefault();
 });
 
-document.getElementById( 'hello-object-image' ).addEventListener( 'dragstart', ev => {
-  ev.dataTransfer.setData( 'object-id', ev.target.id );
-});
-document.getElementById( 'hello-object-image' ).addEventListener( 'click', ev => {
-  useExampleObject();
-});
-document.getElementById( 'hello-object-image' ).addEventListener( 'touchend', ev => {
-  useExampleObject();
-});
-
 document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
   ev.stopPropagation();
   ev.preventDefault();
-
-  if ( ev.dataTransfer.getData( 'object-id' ) == 'hello-object-image' ) {
-    useExampleObject();
-    return;
-  }
 
   if ( ev.dataTransfer.items.length != 1 ) {
     console.error( 'Can drop one file only' );
