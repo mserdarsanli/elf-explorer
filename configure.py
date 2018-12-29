@@ -76,6 +76,18 @@ build out/web/objects/empty.o: compile src/examples/empty.cpp
 build out/web/empty.o.gif: build_object_image
     label = empty.o
 
+build out/web/objects/inline_fn.o: compile src/examples/inline_fn.cpp
+build out/web/inline_fn.o.gif: build_object_image
+    label = inline_fn.o
+
+build out/web/objects/extern_fn.o: compile src/examples/extern_fn.cpp
+build out/web/extern_fn.o.gif: build_object_image
+    label = extern_fn.o
+
+build out/web/objects/static_fn.o: compile src/examples/static_fn.cpp
+build out/web/static_fn.o.gif: build_object_image
+    label = static_fn.o
+
 '''
 
 nasm_sources = [
