@@ -68,26 +68,6 @@ build out/web/test.html:        run_cp web/test.html
 rule build_object_image
     command = python3 web/create-object-image.py --out $out --label $label
 
-build out/web/objects/hello.o: compile src/examples/hello.cpp
-build out/web/hello.o.gif: build_object_image
-    label = hello.o
-
-build out/web/objects/empty.o: compile src/examples/empty.cpp
-build out/web/empty.o.gif: build_object_image
-    label = empty.o
-
-build out/web/objects/inline_fn.o: compile src/examples/inline_fn.cpp
-build out/web/inline_fn.o.gif: build_object_image
-    label = inline_fn.o
-
-build out/web/objects/extern_fn.o: compile src/examples/extern_fn.cpp
-build out/web/extern_fn.o.gif: build_object_image
-    label = extern_fn.o
-
-build out/web/objects/static_fn.o: compile src/examples/static_fn.cpp
-build out/web/static_fn.o.gif: build_object_image
-    label = static_fn.o
-
 '''
 
 nasm_sources = [
@@ -117,6 +97,14 @@ objexp_sources = [
     'src/elf_explorer.cpp',
 ]
 
+examples = [
+    'hello',
+    'empty',
+    'inline_fn',
+    'extern_fn',
+    'static_fn',
+]
+
 nasm_objects = [ 'out/cpp/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
 objexp_objects = [ 'out/cpp/' + src.replace( '.cpp', '.o' ) for src in objexp_sources ]
 
@@ -126,6 +114,11 @@ emcc_objexp_objects = [ 'out/emcc/' + src.replace( '.cpp', '.o' ) for src in obj
 def main():
     with open( 'build.ninja', 'w' ) as ninja:
         ninja.write( ninja_rules )
+
+        for e in examples:
+            ninja.write( f'build out/web/objects/{e}.o: compile src/examples/{e}.cpp\n' )
+            ninja.write( f'build out/web/{e}.o.gif: build_object_image\n' )
+            ninja.write( f'    label = {e}.o\n' )
 
         for src, obj in zip( nasm_sources, nasm_objects ):
             ninja.write( f'build {obj}: nasm_compile {src}\n' )
