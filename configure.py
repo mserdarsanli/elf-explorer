@@ -41,8 +41,6 @@ rule run_python
 
 build out/gen/enums.hpp out/gen/enums.js: run_python src/gen_enums.py
 
-build out/web/enums.js: run_cp out/gen/enums.js
-
 rule nasm_compile
     depfile = $out.d
     command = $cc -MMD -MF $out.d $nasm_cppflags -c $in -o $out
@@ -61,22 +59,15 @@ rule emcc_nasm_compile
 rule emcc_link
     command = $emcc -s "EXPORTED_FUNCTIONS=['_run_with_buffer']"  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ALLOW_MEMORY_GROWTH=1 $in -o $out
 
-build out/web/hello.o.gif: run_cp web/hello.o.gif
-build out/web/style.css: run_cp web/style.css
-build out/web/test.html: run_cp web/test.html
-
 build out/web/astronaut100.png: run_cp web/astronaut100.png
+build out/web/elf-explorer.js:  run_cp web/elf-explorer.js
+build out/web/enums.js:         run_cp out/gen/enums.js
+build out/web/style.css:        run_cp web/style.css
+build out/web/test.html:        run_cp web/test.html
 
-build out/src/hello.o: compile src/hello.cpp
+rule build_object_image
+    command = python3 web/create-object-image.py --out $out --label $label
 
-rule run_xxd
-    command = xxd -i < $in > $out
-build out/gen/hello.xxd: run_xxd out/src/hello.o
-
-rule embed_hello_file
-    command = sed -e '/EMBED_FILE_HERE/{r out/gen/hello.xxd' -e 'd}' $in > $out
-
-build out/web/elf-explorer.js: embed_hello_file web/elf-explorer.js | out/gen/hello.xxd
 '''
 
 nasm_sources = [
@@ -106,6 +97,14 @@ objexp_sources = [
     'src/elf_explorer.cpp',
 ]
 
+examples = [
+    'hello',
+    'empty',
+    'inline_fn',
+    'extern_fn',
+    'static_fn',
+]
+
 nasm_objects = [ 'out/cpp/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
 objexp_objects = [ 'out/cpp/' + src.replace( '.cpp', '.o' ) for src in objexp_sources ]
 
@@ -115,6 +114,11 @@ emcc_objexp_objects = [ 'out/emcc/' + src.replace( '.cpp', '.o' ) for src in obj
 def main():
     with open( 'build.ninja', 'w' ) as ninja:
         ninja.write( ninja_rules )
+
+        for e in examples:
+            ninja.write( f'build out/web/objects/{e}.o: compile src/examples/{e}.cpp\n' )
+            ninja.write( f'build out/web/{e}.o.gif: build_object_image\n' )
+            ninja.write( f'    label = {e}.o\n' )
 
         for src, obj in zip( nasm_sources, nasm_objects ):
             ninja.write( f'build {obj}: nasm_compile {src}\n' )

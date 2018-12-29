@@ -16,10 +16,6 @@
 // along with ELF Explorer.  If not, see <https://www.gnu.org/licenses/>.
 
 
-var exampleObjectFile = new Uint8Array([
-EMBED_FILE_HERE
-]);
-
 function passFileToEmscripten( file ) {
   return new Promise( (resolve, reject) => {
     var arrayBuffer;
@@ -40,9 +36,14 @@ function replacePageWith( htmlContents ) {
   document.getElementsByTagName( 'html' )[0].innerHTML = htmlContents;
 }
 
-function useExampleObject() {
-  emAddr = allocate( exampleObjectFile,  'i8', ALLOC_NORMAL );
-  htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, exampleObjectFile.length] );
+async function useExampleObject( objPath ) {
+  var exampleObjectFile = await fetch( objPath ).then( ( v ) => v.arrayBuffer() );
+
+  var arr = new Uint8Array( exampleObjectFile );
+  console.log( arr );
+  emAddr = allocate( arr,  'i8', ALLOC_NORMAL );
+  console.log( emAddr, 'emaddr' );
+  htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [emAddr, arr.length] );
   replacePageWith( htmlContents );
 }
 
@@ -51,24 +52,9 @@ document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
   ev.preventDefault();
 });
 
-document.getElementById( 'hello-object-image' ).addEventListener( 'dragstart', ev => {
-  ev.dataTransfer.setData( 'object-id', ev.target.id );
-});
-document.getElementById( 'hello-object-image' ).addEventListener( 'click', ev => {
-  useExampleObject();
-});
-document.getElementById( 'hello-object-image' ).addEventListener( 'touchend', ev => {
-  useExampleObject();
-});
-
 document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
   ev.stopPropagation();
   ev.preventDefault();
-
-  if ( ev.dataTransfer.getData( 'object-id' ) == 'hello-object-image' ) {
-    useExampleObject();
-    return;
-  }
 
   if ( ev.dataTransfer.items.length != 1 ) {
     console.error( 'Can drop one file only' );
