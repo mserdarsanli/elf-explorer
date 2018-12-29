@@ -68,13 +68,13 @@ build out/web/test.html:        run_cp web/test.html
 rule build_object_image
     command = python3 web/create-object-image.py --out $out --label $label
 
-build out/web/objects/hello.o: compile src/hello.cpp
+build out/web/objects/hello.o: compile src/examples/hello.cpp
 build out/web/hello.o.gif: build_object_image
     label = hello.o
 
-build out/web/objects/vector.o: compile src/vector.cpp
-build out/web/vector.o.gif: build_object_image
-    label = vector.o
+build out/web/objects/empty.o: compile src/examples/empty.cpp
+build out/web/empty.o.gif: build_object_image
+    label = empty.o
 
 '''
 
