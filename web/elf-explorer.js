@@ -33,6 +33,7 @@ function passFileToEmscripten( file ) {
 }
 
 function replacePageWith( htmlContents ) {
+  window.location = '#';
   document.getElementsByTagName( 'html' )[0].innerHTML = htmlContents;
 }
 
@@ -75,18 +76,14 @@ document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) 
 
 });
 
-
-
 function escapeHtml(unsafe) {
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
- }
-
-
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function addPopup( ev, enum_name ) {
 
@@ -124,3 +121,10 @@ function addPopup( ev, enum_name ) {
 
   ev.target.appendChild( d1 );
 }
+
+window.addEventListener( 'hashchange', ( ev ) => {
+  if ( ev.newURL.includes( '#' ) ) {
+    return;
+  }
+  console.log( 'Returning to home page!!!' );
+});
