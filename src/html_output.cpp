@@ -32,18 +32,18 @@
 
 namespace elfexplorer {
 
-struct Link
+struct Anchor
 {
     static
-    std::string ToSection( size_t idx )
+    std::string ForSection( size_t idx )
     {
-        return fmt::format( "#section-{}", idx );
+        return fmt::format( "section-{}", idx );
     }
 
     static
-    std::string ToSectionHeader( size_t idx )
+    std::string ForSectionHeader( size_t idx )
     {
-        return fmt::format( "#section-header-{}", idx );
+        return fmt::format( "section-header-{}", idx );
     }
 };
 
@@ -162,12 +162,12 @@ static void RenderSectionHeaders( std::ostream &html_out,
         const SectionHeader &sh = sections[ i ].m_header;
 
         html_out << "<tr>"
-                 << "<td><a class=\"sticky-anchor\" name=\"section-header-" << i << "\"></a><a href=\"" << Link::ToSectionHeader( i ) << "\">" << i << "</a></td>"
+                 << "<td><a class=\"sticky-anchor\" name=\"" << Anchor::ForSectionHeader( i ) << "\"></a><a href=\"#" << Anchor::ForSectionHeader( i ) << "\">" << i << "</a></td>"
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
                  << "<td>" << sh.m_attrs << "</td>"
                  << "<td>" << sh.m_address << "</td>"
-                 << "<td><a href=\"" << Link::ToSection( i ) << "\">" << sh.m_offset << "</a></td>"
+                 << "<td><a href=\"#" << Anchor::ForSection( i ) << "\">" << sh.m_offset << "</a></td>"
                  << "<td>" << sh.m_size << "</td>";
 
         if ( sh.m_asso_idx <= 0 || sh.m_asso_idx > sections.size() )
@@ -177,7 +177,7 @@ static void RenderSectionHeaders( std::ostream &html_out,
         else
         {
             const auto &asso_name = sections[ sh.m_asso_idx ].m_header.m_name;
-            html_out << "<td><a href=\"" << Link::ToSection( sh.m_asso_idx ) << "\">" << sh.m_asso_idx << "(" << escape( asso_name ) << ")</a></td>";
+            html_out << "<td><a href=\"#" << Anchor::ForSection( sh.m_asso_idx ) << "\">" << sh.m_asso_idx << "(" << escape( asso_name ) << ")</a></td>";
         }
 
         html_out << "<td>" << sh.m_info << "</td>"
@@ -192,7 +192,7 @@ static void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionH
 {
     html_out << R"(<div class="section-title">)";
     html_out << R"(<table style="text-align: left;" border="0" cellspacing="0">)";
-    html_out << "<tr><th colspan=\"2\"><a style=\"font-size: 200%;\" name=\"section-" << i << "\">Section " << i << ": " << escape( sh.m_name ) << "</a></th></tr>";
+    html_out << "<tr><th colspan=\"2\"><a style=\"font-size: 200%;\" name=\"" << Anchor::ForSection( i ) << "\">Section " << i << ": " << escape( sh.m_name ) << "</a></th></tr>";
     html_out << "<tr><th>Name</th><td>" << escape( sh.m_name ) << "</td></tr>";
     html_out << "<tr><th>Type</th><td>" << sh.m_type << "</td></tr>";
     html_out << "<tr><th>Attrs</th><td>" << sh.m_attrs << "</td></tr>";
