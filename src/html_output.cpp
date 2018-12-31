@@ -168,9 +168,19 @@ static void RenderSectionHeaders( std::ostream &html_out,
                  << "<td>" << sh.m_attrs << "</td>"
                  << "<td>" << sh.m_address << "</td>"
                  << "<td><a href=\"" << Link::ToSection( i ) << "\">" << sh.m_offset << "</a></td>"
-                 << "<td>" << sh.m_size << "</td>"
-                 << "<td>" << sh.m_asso_idx << "</td>"
-                 << "<td>" << sh.m_info << "</td>"
+                 << "<td>" << sh.m_size << "</td>";
+
+        if ( sh.m_asso_idx <= 0 || sh.m_asso_idx > sections.size() )
+        {
+            html_out << "<td>" << sh.m_asso_idx << "</td>";
+        }
+        else
+        {
+            const auto &asso_name = sections[ sh.m_asso_idx ].m_header.m_name;
+            html_out << "<td><a href=\"" << Link::ToSection( sh.m_asso_idx ) << "\">" << sh.m_asso_idx << "(" << escape( asso_name ) << ")</a></td>";
+        }
+
+        html_out << "<td>" << sh.m_info << "</td>"
                  << "<td>" << sh.m_addr_align << "</td>"
                  << "<td>" << sh.m_ent_size << "</td>"
                  << "</tr>";
