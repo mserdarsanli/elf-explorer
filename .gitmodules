@@ -1,3 +1,6 @@
 [submodule "third_party/nasm"]
 	path = third_party/nasm
 	url = https://repo.or.cz/nasm.git
+[submodule "third_party/fmt"]
+	path = third_party/fmt
+	url = https://github.com/fmtlib/fmt.git
