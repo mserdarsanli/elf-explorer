@@ -47,6 +47,19 @@ struct Anchor
     }
 };
 
+struct Link
+{
+    static
+    std::string ToSection( const std::vector< Section > &sections, size_t idx )
+    {
+        if ( idx <= 0 || idx > sections.size() )
+        {
+            return fmt::format( "{}", idx );
+        }
+        return fmt::format( R"(<a href="#{}">Section {} ({})</a>)", Anchor::ForSection( idx ), idx, escape( sections[ idx ].m_header.m_name ) );
+    }
+};
+
 static void RenderAsStringTable( std::ostream &html_out, std::string_view s )
 {
     if ( s.size() == 0 )
@@ -168,19 +181,9 @@ static void RenderSectionHeaders( std::ostream &html_out,
                  << "<td>" << sh.m_attrs << "</td>"
                  << "<td>" << sh.m_address << "</td>"
                  << "<td><a href=\"#" << Anchor::ForSection( i ) << "\">" << sh.m_offset << "</a></td>"
-                 << "<td>" << sh.m_size << "</td>";
-
-        if ( sh.m_asso_idx <= 0 || sh.m_asso_idx > sections.size() )
-        {
-            html_out << "<td>" << sh.m_asso_idx << "</td>";
-        }
-        else
-        {
-            const auto &asso_name = sections[ sh.m_asso_idx ].m_header.m_name;
-            html_out << "<td><a href=\"#" << Anchor::ForSection( sh.m_asso_idx ) << "\">" << sh.m_asso_idx << "(" << escape( asso_name ) << ")</a></td>";
-        }
-
-        html_out << "<td>" << sh.m_info << "</td>"
+                 << "<td>" << sh.m_size << "</td>"
+                 << "<td>" << Link::ToSection( sections, sh.m_asso_idx ) << "</td>"
+                 << "<td>" << sh.m_info << "</td>"
                  << "<td>" << sh.m_addr_align << "</td>"
                  << "<td>" << sh.m_ent_size << "</td>"
                  << "</tr>";
@@ -188,8 +191,10 @@ static void RenderSectionHeaders( std::ostream &html_out,
     html_out << "</tbody></table>";
 }
 
-static void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionHeader &sh )
+static void RenderSectionTitle( std::ostream &html_out, const std::vector< Section > &sections, size_t i )
 {
+    const SectionHeader &sh = sections[ i ].m_header;
+
     html_out << R"(<div class="section-title">)";
     html_out << R"(<table style="text-align: left;" border="0" cellspacing="0">)";
     html_out << "<tr><th colspan=\"2\"><a style=\"font-size: 200%;\" name=\"" << Anchor::ForSection( i ) << "\">Section " << i << ": " << escape( sh.m_name ) << "</a></th></tr>";
@@ -198,7 +203,7 @@ static void RenderSectionTitle( std::ostream &html_out, size_t i, const SectionH
     html_out << "<tr><th>Attrs</th><td>" << sh.m_attrs << "</td></tr>";
     html_out << "<tr><th>Address</th><td>" << sh.m_address << "</td></tr>";
     html_out << "<tr><th>Size</th><td>" << sh.m_size << "</td></tr>";
-    html_out << "<tr><th>Asso Idx</th><td>" << sh.m_asso_idx << "</td></tr>";
+    html_out << "<tr><th>Asso Idx</th><td>" << Link::ToSection( sections, sh.m_asso_idx ) << "</td></tr>";
     html_out << "<tr><th>Info</th><td>" << sh.m_info << "</td></tr>";
     html_out << "<tr><th>Addr Align</th><td>" << sh.m_addr_align << "</td></tr>";
     html_out << "<tr><th>Ent Size</th><td>" << sh.m_ent_size << "</td></tr>";
@@ -417,9 +422,7 @@ void RenderAsHTML( std::ostream &html_out, const ELF_File &elf )
 
     for ( size_t i = 1; i < elf.m_sections.size(); ++i )
     {
-        const SectionHeader &sh = elf.m_sections[ i ].m_header;
-
-        RenderSectionTitle( html_out, i, sh );
+        RenderSectionTitle( html_out, elf.m_sections, i );
 
         std::visit( SectionHtmlRenderer( html_out, elf.m_sections, i ), elf.m_sections[ i ].m_var );
     }
