@@ -26,9 +26,26 @@
 
 #include <cxxabi.h>
 
+#include <fmt/format.h>
+
 #include "wrap_nasm.h"
 
 namespace elfexplorer {
+
+struct Link
+{
+    static
+    std::string ToSection( size_t idx )
+    {
+        return fmt::format( "#section-{}", idx );
+    }
+
+    static
+    std::string ToSectionHeader( size_t idx )
+    {
+        return fmt::format( "#section-header-{}", idx );
+    }
+};
 
 static void RenderAsStringTable( std::ostream &html_out, std::string_view s )
 {
@@ -145,12 +162,12 @@ static void RenderSectionHeaders( std::ostream &html_out,
         const SectionHeader &sh = sections[ i ].m_header;
 
         html_out << "<tr>"
-                 << "<td><a class=\"sticky-anchor\" name=\"section-header-" << i << "\"></a><a href=\"#section-header-" << i << "\">" << i << "</a></td>"
+                 << "<td><a class=\"sticky-anchor\" name=\"section-header-" << i << "\"></a><a href=\"" << Link::ToSectionHeader( i ) << "\">" << i << "</a></td>"
                  << "<td>" << escape( sh.m_name ) << "</td>"
                  << "<td>" << sh.m_type << "</td>"
                  << "<td>" << sh.m_attrs << "</td>"
                  << "<td>" << sh.m_address << "</td>"
-                 << "<td><a href=\"#section-" << i << "\">" << sh.m_offset << "</a></td>"
+                 << "<td><a href=\"" << Link::ToSection( i ) << "\">" << sh.m_offset << "</a></td>"
                  << "<td>" << sh.m_size << "</td>"
                  << "<td>" << sh.m_asso_idx << "</td>"
                  << "<td>" << sh.m_info << "</td>"
