@@ -102,6 +102,7 @@ objexp_sources = [
 ]
 
 examples = [
+    'libfmt_format',
     'hello',
     'empty',
     'inline_fn',

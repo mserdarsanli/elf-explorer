@@ -119,6 +119,8 @@ function resetToHomePage() {
       Or use one of the examples below:
     </h2>
 
+    <img style="cursor: pointer;" src="./libfmt_format.o.gif" onclick="useExampleObject( 'objects/libfmt_format.o' )"></img>
+    <br/>
     <img style="cursor: pointer;" src="./hello.o.gif" onclick="useExampleObject( 'objects/hello.o' )"></img>
     <br/>
     <img style="cursor: pointer;" src="./empty.o.gif" onclick="useExampleObject( 'objects/empty.o' )"></img>
