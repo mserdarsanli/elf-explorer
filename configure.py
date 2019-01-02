@@ -22,7 +22,7 @@ import sys
 ninja_rules = '''
 cxx = g++
 cc = gcc
-cppflags = -std=c++17 -Wall -Wpedantic -fPIC -O3 -I out/gen
+cppflags = -std=c++17 -Wall -Wpedantic -fPIC -O3 -I out/gen -I third_party/fmt/include
 nasm_cppflags = -DHAVE_CONFIG_H -I third_party/nasm/include -I third_party/nasm -I third_party/nasm/x86 -I third_party/nasm/asm
 emcc = emcc
 
@@ -90,6 +90,10 @@ nasm_sources = [
     'third_party/nasm/nasmlib/string.c',
 ]
 
+fmt_sources = [
+    'third_party/fmt/src/format.cc',
+]
+
 objexp_sources = [
     'src/elf_structs.cpp',
     'src/html_output.cpp',
@@ -98,6 +102,7 @@ objexp_sources = [
 ]
 
 examples = [
+    'libfmt_format',
     'hello',
     'empty',
     'inline_fn',
@@ -106,9 +111,11 @@ examples = [
 ]
 
 nasm_objects = [ 'out/cpp/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
+fmt_objects = [ 'out/cpp/' + src.replace( '.cc', '.o' ) for src in fmt_sources ]
 objexp_objects = [ 'out/cpp/' + src.replace( '.cpp', '.o' ) for src in objexp_sources ]
 
 emcc_nasm_objects = [ 'out/emcc/' + src.replace( '.c', '.o' ) for src in nasm_sources ]
+emcc_fmt_objects = [ 'out/emcc/' + src.replace( '.cc', '.o' ) for src in fmt_sources ]
 emcc_objexp_objects = [ 'out/emcc/' + src.replace( '.cpp', '.o' ) for src in objexp_sources ]
 
 def main():
@@ -126,6 +133,12 @@ def main():
         for src, obj in zip( nasm_sources, emcc_nasm_objects ):
             ninja.write( f'build {obj}: emcc_nasm_compile {src}\n' )
 
+        for src, obj in zip( fmt_sources, fmt_objects ):
+            ninja.write( f'build {obj}: compile {src}\n' )
+
+        for src, obj in zip( fmt_sources, emcc_fmt_objects ):
+            ninja.write( f'build {obj}: emcc_compile {src}\n' )
+
         ninja.write( f'build out/cpp/disasm_lib.a: create_archive {" ".join( nasm_objects )}\n' )
 
         for src, obj in zip( objexp_sources, objexp_objects ):
@@ -134,8 +147,8 @@ def main():
         for src, obj in zip( objexp_sources, emcc_objexp_objects ):
             ninja.write( f'build {obj}: emcc_compile {src}\n' )
 
-        ninja.write( f'build out/elf_explorer: link {" ".join( objexp_objects ) } out/cpp/disasm_lib.a\n' )
-        ninja.write( f'build out/web/object_explorer.js: emcc_link {" ".join( emcc_nasm_objects + emcc_objexp_objects ) }\n' )
+        ninja.write( f'build out/elf_explorer: link {" ".join( objexp_objects + fmt_objects ) } out/cpp/disasm_lib.a\n' )
+        ninja.write( f'build out/web/object_explorer.js: emcc_link {" ".join( emcc_nasm_objects + emcc_objexp_objects + emcc_fmt_objects ) }\n' )
 
 
 if __name__ == "__main__":

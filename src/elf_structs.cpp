@@ -247,7 +247,7 @@ struct ELF_Loader
             ASSERT( sh.m_size % 4 == 0 );
             GroupSection &group = m_sections[ idx ].m_var.emplace< GroupSection >();
 
-            group.m_flags = m_input.U32At( sh.m_offset );
+            group.m_flags = static_cast< GroupHandling >( m_input.U32At( sh.m_offset ) );
 
             uint64_t it = sh.m_offset + 4;
             uint64_t end = sh.m_offset + sh.m_size;

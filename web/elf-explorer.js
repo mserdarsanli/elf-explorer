@@ -33,6 +33,7 @@ function passFileToEmscripten( file ) {
 }
 
 function replacePageWith( htmlContents ) {
+  window.location = '#';
   document.getElementsByTagName( 'html' )[0].innerHTML = htmlContents;
 }
 
@@ -47,46 +48,14 @@ async function useExampleObject( objPath ) {
   replacePageWith( htmlContents );
 }
 
-document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
-  ev.stopPropagation();
-  ev.preventDefault();
-});
-
-document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
-  ev.stopPropagation();
-  ev.preventDefault();
-
-  if ( ev.dataTransfer.items.length != 1 ) {
-    console.error( 'Can drop one file only' );
-    return;
-  }
-
-  let item = ev.dataTransfer.items[0];
-
-  if ( item.kind != 'file' ) {
-    console.error( 'Dropped item must be a file' );
-    return;
-  }
-
-  passFileToEmscripten( item.getAsFile() ).then( ( [addr, len] ) => {
-    var htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [addr, len] );
-    replacePageWith( htmlContents );
-  } );
-
-});
-
-
-
 function escapeHtml(unsafe) {
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
- }
-
-
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function addPopup( ev, enum_name ) {
 
@@ -124,3 +93,73 @@ function addPopup( ev, enum_name ) {
 
   ev.target.appendChild( d1 );
 }
+
+window.addEventListener( 'hashchange', ( ev ) => {
+  if ( ev.newURL.includes( '#' ) ) {
+    return;
+  }
+  resetToHomePage();
+});
+
+function resetToHomePage() {
+  document.getElementsByTagName( 'html' )[0].innerHTML = `
+    <!-- Image was found here: https://pixabay.com/en/space-astronaut-planet-spaceship-2342671/ -->
+    <div style="display: flex; background-color: #0d324b;">
+      <img src="astronaut100.png"></img>
+      <span style="margin-left: 10px; color: white; font-size: 75px;">ELF Explorer</span>
+    </div>
+
+    <div id="drop-area" style="background-color: #dddddd; height: 200px;     display: flex; justify-content: center; align-items: center;" >
+      <div style="font-weight: bold; font-size: 3em;">
+        Drop your file here
+      </div>
+    </div>
+
+    <h2>
+      Or use one of the examples below:
+    </h2>
+
+    <img style="cursor: pointer;" src="./libfmt_format.o.gif" onclick="useExampleObject( 'objects/libfmt_format.o' )"></img>
+    <br/>
+    <img style="cursor: pointer;" src="./hello.o.gif" onclick="useExampleObject( 'objects/hello.o' )"></img>
+    <br/>
+    <img style="cursor: pointer;" src="./empty.o.gif" onclick="useExampleObject( 'objects/empty.o' )"></img>
+    <br/>
+    <img style="cursor: pointer;" src="./inline_fn.o.gif" onclick="useExampleObject( 'objects/inline_fn.o' )"></img>
+    <br/>
+    <img style="cursor: pointer;" src="./extern_fn.o.gif" onclick="useExampleObject( 'objects/extern_fn.o' )"></img>
+    <br/>
+    <img style="cursor: pointer;" src="./static_fn.o.gif" onclick="useExampleObject( 'objects/static_fn.o' )"></img>
+  `;
+}
+
+window.onload = function() {
+  resetToHomePage();
+
+  document.getElementById( 'drop-area' ).addEventListener( 'dragover', ev => {
+    ev.stopPropagation();
+    ev.preventDefault();
+  });
+
+  document.getElementById( 'drop-area' ).addEventListener( 'drop', function( ev ) {
+    ev.stopPropagation();
+    ev.preventDefault();
+
+    if ( ev.dataTransfer.items.length != 1 ) {
+      console.error( 'Can drop one file only' );
+      return;
+    }
+
+    let item = ev.dataTransfer.items[0];
+
+    if ( item.kind != 'file' ) {
+      console.error( 'Dropped item must be a file' );
+      return;
+    }
+
+    passFileToEmscripten( item.getAsFile() ).then( ( [addr, len] ) => {
+      var htmlContents = Module.ccall( 'run_with_buffer', 'string', ['number', 'number'], [addr, len] );
+      replacePageWith( htmlContents );
+    } );
+  });
+};
