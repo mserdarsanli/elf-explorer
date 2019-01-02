@@ -417,13 +417,20 @@ struct SectionHtmlRenderer
     {
         ASSERT( group.m_flags == GroupHandling::GRP_COMDAT ); // ( no other option known )
 
-        html_out << "GROUP section<br>"
-                 << "    - flags: " << group.m_flags << "<br>";
+        html_out << "<table border=\"1\" cellpadding=\"3\" cellspacing=\"0\"><tr><th>Flags</th><td>" << group.m_flags << "</td></tr>";
 
-        for ( uint32_t sec_idx : group.m_section_indices )
+        for ( size_t i = 0; i < group.m_section_indices.size(); ++i )
         {
-            html_out << "    - section idx : " << sec_idx << "<br>";
+            uint32_t sec_idx = group.m_section_indices[ i ];
+            html_out << "<tr>";
+            if ( i == 0 )
+            {
+                html_out << "<th rowspan=\"" << group.m_section_indices.size() << "\">Sections</th>";
+            }
+            html_out << "<td>" << Link::ToSection( m_sections, sec_idx ) << "</td>";
         }
+
+        html_out << "</table>";
     }
 
     void operator()( const RelocationEntries &reloc )
