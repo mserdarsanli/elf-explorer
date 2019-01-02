@@ -1,4 +1,4 @@
-// Copyright 2018 Mustafa Serdar Sanli
+// Copyright 2018-2019 Mustafa Serdar Sanli
 //
 // This file is part of ELF Explorer.
 //
@@ -45,6 +45,12 @@ struct Anchor
     {
         return fmt::format( "section-header-{}", idx );
     }
+
+    static
+    std::string ForSymbol( size_t section_idx, size_t symbol_idx )
+    {
+        return fmt::format( "section-{}-symbol-{}", section_idx, symbol_idx );
+    }
 };
 
 struct Link
@@ -57,6 +63,38 @@ struct Link
             return fmt::format( "{}", idx );
         }
         return fmt::format( R"(<a href="#{}">Section {} ({})</a>)", Anchor::ForSection( idx ), idx, escape( sections[ idx ].m_header.m_name ) );
+    }
+
+    static
+    std::string ToSymbol( const std::vector< Section > &sections, size_t section_idx, size_t symbol_idx )
+    {
+        if ( section_idx == 0 || section_idx > sections.size() )
+        {
+            return fmt::format( "Symbol {}", symbol_idx );
+        }
+        const Section &sec = sections.at( section_idx );
+
+        if ( ! std::holds_alternative< SymbolTable >( sec.m_var ) )
+        {
+            return fmt::format( "Symbol {}", symbol_idx );
+        }
+
+        const SymbolTable &symtab = std::get< SymbolTable >( sec.m_var );
+
+        if ( symbol_idx == 0 || symbol_idx > symtab.m_symbols.size() )
+        {
+            return fmt::format( "Symbol {}", symbol_idx );
+        }
+
+        const std::string &sym_name =  symtab.m_symbols[ symbol_idx ].m_name;
+        if ( sym_name.size() )
+        {
+            return fmt::format( R"(<a href="#{}">Symbol {} ({})</a>)", Anchor::ForSymbol( section_idx, symbol_idx ), symbol_idx, escape( sym_name ) );
+        }
+        else
+        {
+            return fmt::format( R"(<a href="#{}">Symbol {}</a>)", Anchor::ForSymbol( section_idx, symbol_idx ), symbol_idx );
+        }
     }
 };
 
@@ -112,41 +150,6 @@ std::string escape( const std::string &s )
     return res;
 }
 
-static void RenderSymbolTable( std::ostream &html_out, const std::vector< Symbol > &symbols )
-{
-    html_out << R"(
-<table class="sticky-header" border="1" cellspacing="0" style="word-break: break-all;">
-  <thead>
-    <tr>
-      <th>Symbol</th>
-      <th width="200">Name</th>
-      <th>Bind</th>
-      <th>Type</th>
-      <th>Visibility</th>
-      <th>Section Idx</th>
-      <th>Value</th>
-      <th>Size</th>
-    </tr>
-  </thead>
-  <tbody>
-)";
-
-    for ( size_t i = 0; i < symbols.size(); ++i )
-    {
-        const Symbol &s = symbols[ i ];
-        html_out << "<td>" << i << "</td>"
-                 << "<td>" << escape( s.m_name ) << "</td>"
-                 << "<td>" << s.m_binding << "</td>"
-                 << "<td>" << s.m_type << "</td>"
-                 << "<td>" << s.m_visibility << "</td>"
-                 << "<td>" << s.m_section_idx << "</td>"
-                 << "<td>" << s.m_value << "</td>"
-                 << "<td>" << s.m_size << "</td>"
-                 << "</tr>";
-    }
-    html_out << "</tbody></table>";
-}
-
 static void RenderSectionHeaders( std::ostream &html_out,
                            const std::vector< Section > &sections )
 {
@@ -182,9 +185,18 @@ static void RenderSectionHeaders( std::ostream &html_out,
                  << "<td>" << sh.m_address << "</td>"
                  << "<td><a href=\"#" << Anchor::ForSection( i ) << "\">" << sh.m_offset << "</a></td>"
                  << "<td>" << sh.m_size << "</td>"
-                 << "<td>" << Link::ToSection( sections, sh.m_asso_idx ) << "</td>"
-                 << "<td>" << sh.m_info << "</td>"
-                 << "<td>" << sh.m_addr_align << "</td>"
+                 << "<td>" << Link::ToSection( sections, sh.m_asso_idx ) << "</td>";
+
+        if ( sh.m_type == SectionType::SHT_GROUP )
+        {
+            html_out << "<td>" << Link::ToSymbol( sections, sh.m_asso_idx, sh.m_info ) << "</td>";
+        }
+        else
+        {
+            html_out << "<td>" << sh.m_info << "</td>";
+        }
+
+        html_out << "<td>" << sh.m_addr_align << "</td>"
                  << "<td>" << sh.m_ent_size << "</td>"
                  << "</tr>";
     }
@@ -363,7 +375,42 @@ struct SectionHtmlRenderer
 
     void operator()( const SymbolTable &symtab )
     {
-        RenderSymbolTable( html_out, symtab.m_symbols );
+        const std::vector< Symbol > &symbols = symtab.m_symbols;
+
+        html_out << R"(
+    <table class="sticky-header" border="1" cellspacing="0" style="word-break: break-all;">
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th width="200">Name</th>
+          <th>Bind</th>
+          <th>Type</th>
+          <th>Visibility</th>
+          <th>Section Idx</th>
+          <th>Value</th>
+          <th>Size</th>
+        </tr>
+      </thead>
+      <tbody>
+    )";
+
+        for ( size_t i = 0; i < symbols.size(); ++i )
+        {
+            const Symbol &s = symbols[ i ];
+            html_out << "<td>"
+                           "<a class=\"sticky-anchor\" name=\"" << Anchor::ForSymbol( m_cur_section_idx, i ) << "\"></a>"
+                           "<a href=\"#" << Anchor::ForSymbol( m_cur_section_idx, i ) << "\">" << i << "</a>"
+                        "</td>"
+                     << "<td>" << escape( s.m_name ) << "</td>"
+                     << "<td>" << s.m_binding << "</td>"
+                     << "<td>" << s.m_type << "</td>"
+                     << "<td>" << s.m_visibility << "</td>"
+                     << "<td>" << s.m_section_idx << "</td>"
+                     << "<td>" << s.m_value << "</td>"
+                     << "<td>" << s.m_size << "</td>"
+                     << "</tr>";
+        }
+        html_out << "</tbody></table>";
     }
 
     void operator()( const GroupSection &group )
