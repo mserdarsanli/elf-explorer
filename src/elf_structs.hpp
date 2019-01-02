@@ -85,7 +85,7 @@ struct RelocationEntries
 
 struct GroupSection
 {
-    uint32_t m_flags;
+    GroupHandling m_flags;
     std::vector< uint32_t > m_section_indices;
 };
 

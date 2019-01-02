@@ -148,6 +148,12 @@ Bitfields = [
             ( 'SHF_COMPRESSED',       (1 << 11), 'Section with compressed data' ),
         ],
     ),
+    Enum( name = 'GroupHandling',
+        int_type = 'uint32_t',
+        values = [
+            ( 'GRP_COMDAT',       1, 'Mark group as COMDAT' ),
+        ],
+    ),
 ]
 
 def gen_enums_hpp():

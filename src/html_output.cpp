@@ -415,10 +415,10 @@ struct SectionHtmlRenderer
 
     void operator()( const GroupSection &group )
     {
-        ASSERT( group.m_flags == 0x01 ); // GRP_COMDAT ( no other option )
+        ASSERT( group.m_flags == GroupHandling::GRP_COMDAT ); // ( no other option known )
 
         html_out << "GROUP section<br>"
-                 << "    - flags: GRP_COMDAT<br>";
+                 << "    - flags: " << group.m_flags << "<br>";
 
         for ( uint32_t sec_idx : group.m_section_indices )
         {
