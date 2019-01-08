@@ -58,14 +58,13 @@ div.section-title {
     width: 300px;
     top: 0%;
     transform: translate( 0%, calc( -100% - 10px ) );
-    background-color: #eeeeee;
+    background-color: #b2b3f4;
     border: 1px solid black;
     padding: 5px;
 }
 
 .popup-close-button {
     font-weight: bold;
-    background-color: #dddddd;
 }
 
 .popup-tip {
