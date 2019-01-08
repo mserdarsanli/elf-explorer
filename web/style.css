@@ -57,8 +57,7 @@ div.section-title {
     position: absolute;
     width: 300px;
     top: 0%;
-    left: 50%;
-    transform: translate(-50%, calc( -100% - 10px ) );
+    transform: translate( 0%, calc( -100% - 10px ) );
     background-color: #eeeeee;
     border: 1px solid black;
     padding: 5px;
@@ -75,7 +74,7 @@ div.section-title {
     border-top-color: black;
     position: absolute;
     top: 100%;
-    left: 50%;
+    left: 10px;
     transform: translate( -50%, 0% );
 }
 
