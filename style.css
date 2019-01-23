@@ -1,0 +1,86 @@
+/*
+  Copyright 2018 Mustafa Serdar Sanli
+
+  This file is part of ELF Explorer.
+
+  ELF Explorer is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  ELF Explorer is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with ELF Explorer.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+
+:root {
+    --sticky-header-height: 2em;
+}
+
+table.sticky-header th {
+    position: sticky;
+    top: 0;
+    background: lightblue;
+    height: calc( var( --sticky-header-height ) );
+}
+
+table.sticky-header td {
+    vertical-align: top;
+}
+
+.sticky-anchor {
+    display: block;
+    position: relative;
+    top: calc( var( --sticky-header-height ) * -1 - 4px );
+    visibility: hidden;
+}
+
+div.section-title {
+    background-color: #eeeeee;
+    border-left: 4px solid darkblue;
+    padding-left: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.enum-val {
+    background-color: #eaf2ff;
+    cursor: pointer;
+}
+
+.popup {
+    position: absolute;
+    width: 300px;
+    top: 0%;
+    transform: translate( 0%, calc( -100% - 10px ) );
+    background-color: #b2b3f4;
+    border: 1px solid black;
+    padding: 5px;
+}
+
+.popup-close-button {
+    font-weight: bold;
+}
+
+.popup-tip {
+    border: 10px solid transparent;
+    width: 0px;
+    border-top-color: black;
+    position: absolute;
+    top: 100%;
+    left: 10px;
+    transform: translate( -50%, 0% );
+}
+
+
+.assembly-code {
+    font-family: monospace;
+}
+.assembly-code table {
+    border-spacing: 4em 0em;
+}
